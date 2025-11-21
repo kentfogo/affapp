@@ -6,18 +6,15 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { useOnboardingStore, OnboardingData } from '../store/onboardingStore';
+import { useSessionStore } from '../store/sessionStore';
+import { storageService } from '../services/storageService';
 import { affirmationService } from '../services/affirmationService';
-
-const GOALS = [
-  'Overcoming Anxiety',
-  'Building Confidence',
-  'Self-Love',
-  'Focus & Motivation',
-  'General Wellness',
-];
 
 const CATEGORIES = [
   'Overcoming Anxiety',
@@ -31,7 +28,9 @@ const CATEGORIES = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { saveOnboarding, loadOnboarding } = useOnboardingStore();
+  const { selectedAffirmations } = useSessionStore();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<Partial<OnboardingData>>({
     preferredCategories: [],
@@ -43,16 +42,17 @@ export default function OnboardingScreen() {
     setIsLoading(false);
   }, []);
 
-  const handleNext = () => {
-    if (step === 1 && !data.primaryGoal) {
-      Alert.alert('Please select a goal');
-      return;
+  const handleNext = async () => {
+    // Add haptic feedback (skip on web)
+    if (Platform.OS !== 'web') {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    if (step === 2 && data.preferredCategories!.length === 0) {
+
+    if (step === 1 && data.preferredCategories!.length === 0) {
       Alert.alert('Please select at least one category');
       return;
     }
-    if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
     } else {
       handleComplete();
@@ -67,13 +67,39 @@ export default function OnboardingScreen() {
 
     try {
       await saveOnboarding(data as OnboardingData);
-      router.replace('/(tabs)/home');
+
+      // Check both sessionStore and storageService for affirmations
+      const storedAffirmations = await storageService.getSelectedAffirmations();
+      const hasAffirmations = selectedAffirmations.length > 0 || storedAffirmations.length > 0;
+
+      // Smart navigation based on affirmation selection status
+      if (!hasAffirmations) {
+        console.log('No affirmations selected - navigating to affirmations screen');
+        router.replace('/(tabs)/affirmations');
+
+        // Show helpful guidance message
+        setTimeout(() => {
+          Alert.alert(
+            'Select Your Affirmations',
+            'Choose 5-10 affirmations to begin your journey!',
+            [{ text: 'Got it!', style: 'default' }]
+          );
+        }, 500);
+      } else {
+        console.log('Affirmations already selected - navigating to home');
+        router.replace('/(tabs)/home');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to save onboarding data');
     }
   };
 
-  const toggleCategory = (category: string) => {
+  const toggleCategory = async (category: string) => {
+    // Add haptic feedback (skip on web)
+    if (Platform.OS !== 'web') {
+      await Haptics.selectionAsync();
+    }
+
     setData((prev) => {
       const categories = prev.preferredCategories || [];
       const updated = categories.includes(category)
@@ -92,38 +118,20 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={{
+        paddingTop: insets.top + 20,
+        paddingBottom: insets.bottom + 20,
+        paddingHorizontal: 24,
+      }}
+    >
       <Text style={styles.title}>Welcome to Mental Victory Practice</Text>
       <Text style={styles.subtitle}>
-        Let's personalize your experience ({step}/4)
+        Let's personalize your experience ({step}/3)
       </Text>
 
       {step === 1 && (
-        <View style={styles.step}>
-          <Text style={styles.question}>What's your primary goal?</Text>
-          {GOALS.map((goal) => (
-            <TouchableOpacity
-              key={goal}
-              style={[
-                styles.option,
-                data.primaryGoal === goal && styles.optionSelected,
-              ]}
-              onPress={() => setData({ ...data, primaryGoal: goal })}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  data.primaryGoal === goal && styles.optionTextSelected,
-                ]}
-              >
-                {goal}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {step === 2 && (
         <View style={styles.step}>
           <Text style={styles.question}>
             Which affirmation categories interest you? (Select all that apply)
@@ -152,7 +160,7 @@ export default function OnboardingScreen() {
         </View>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <View style={styles.step}>
           <Text style={styles.question}>How would you like to hear affirmations?</Text>
           <TouchableOpacity
@@ -190,7 +198,7 @@ export default function OnboardingScreen() {
         </View>
       )}
 
-      {step === 4 && (
+      {step === 3 && (
         <View style={styles.step}>
           <Text style={styles.question}>Preferred distance unit?</Text>
           <TouchableOpacity
@@ -241,7 +249,7 @@ export default function OnboardingScreen() {
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {step === 4 ? 'Get Started' : 'Next'}
+          {step === 3 ? 'Get Started' : 'Next'}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -254,7 +262,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   content: {
-    padding: 24,
+    // Padding now handled inline with safe area insets
   },
   title: {
     fontSize: 28,

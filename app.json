@@ -42,7 +42,7 @@
     "plugins": [
       "expo-router",
       [
-        "expo-av",
+        "expo-audio",
         {
           "microphonePermission": "Allow Mental Victory Practice to access your microphone to record custom affirmations."
         }
@@ -52,7 +52,9 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Mental Victory Practice to use your location to track distance intervals."
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "scheme": "mentalvictory",
     "extra": {
@@ -65,4 +67,3 @@
     }
   }
 }
-

@@ -7,6 +7,7 @@ import {
   Vibration,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { COLORS } from '../constants/colors';
 
 interface LongPressButtonProps {
   onLongPress: () => void;
@@ -115,20 +116,22 @@ export default function LongPressButton({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    alignItems: 'center',
   },
   button: {
-    height: 64,
-    backgroundColor: '#F44336',
-    borderRadius: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#D32F2F',
+    borderColor: `${COLORS.accent}CC`,
   },
   buttonDisabled: {
-    backgroundColor: '#CCCCCC',
-    borderColor: '#999999',
+    backgroundColor: COLORS.border,
+    borderColor: COLORS.border,
   },
   progressBar: {
     position: 'absolute',
@@ -138,13 +141,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   text: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.surface,
     zIndex: 1,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
   textDisabled: {
-    color: '#666666',
+    color: COLORS.textSecondary,
   },
 });
 

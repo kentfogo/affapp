@@ -11,6 +11,7 @@ import { useSessionStore } from '../../store/sessionStore';
 import { affirmationService } from '../../services/affirmationService';
 import { storageService } from '../../services/storageService';
 import { Affirmation } from '../../types/affirmation';
+import { COLORS } from '../../constants/colors';
 
 export default function LibraryScreen() {
   const { selectedAffirmations, setSelectedAffirmations } = useSessionStore();
@@ -73,23 +74,28 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Library</Text>
-        <Text style={styles.subtitle}>
-          Select 5-10 affirmations ({selectedAffirmations.length}/10)
-        </Text>
-      </View>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Library</Text>
+          <Text style={styles.subtitle}>
+            Select 5-10 affirmations ({selectedAffirmations.length}/10)
+          </Text>
+        </View>
 
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search affirmations..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search affirmations..."
+            placeholderTextColor={COLORS.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <View style={styles.content}>
         {filteredCategories.map((category) => (
           <View key={category.name} style={styles.categorySection}>
             <Text style={styles.categoryTitle}>{category.name}</Text>
@@ -122,6 +128,7 @@ export default function LibraryScreen() {
             })}
           </View>
         ))}
+        </View>
       </ScrollView>
     </View>
   );
@@ -130,7 +137,14 @@ export default function LibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   header: {
     padding: 24,
@@ -139,12 +153,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.textSecondary,
   },
   searchContainer: {
     paddingHorizontal: 24,
@@ -153,16 +167,14 @@ const styles = StyleSheet.create({
   searchInput: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: COLORS.background,
+    color: COLORS.text,
   },
   content: {
-    flex: 1,
-  },
-  contentContainer: {
     padding: 24,
     paddingTop: 0,
   },
@@ -172,30 +184,30 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 16,
   },
   affirmationCard: {
     padding: 16,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
     borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: COLORS.background,
     position: 'relative',
   },
   affirmationCardSelected: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.primary,
+    backgroundColor: `${COLORS.primary}20`,
   },
   affirmationText: {
     fontSize: 16,
-    color: '#1A1A1A',
+    color: COLORS.text,
     lineHeight: 24,
     paddingRight: 32,
   },
   affirmationTextSelected: {
-    color: '#2E7D32',
+    color: COLORS.text,
     fontWeight: '500',
   },
   checkmark: {
@@ -205,12 +217,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#4CAF50',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkmarkText: {
-    color: '#FFFFFF',
+    color: COLORS.surface,
     fontSize: 16,
     fontWeight: 'bold',
   },

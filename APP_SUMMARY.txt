@@ -1,0 +1,686 @@
+================================================================================
+MENTAL VICTORY PRACTICE - APPLICATION SUMMARY
+================================================================================
+
+OVERVIEW
+--------
+Mental Victory Practice is a mobile application designed to help users improve 
+their mental well-being through personalized positive affirmations delivered 
+during movement sessions (walking, running, etc.). The app plays affirmations 
+at user-defined intervals (time or distance-based) to reinforce positive 
+thinking patterns.
+
+PRIMARY PURPOSE
+---------------
+Users select 5-10 affirmations from a curated bank of 400+ affirmations, 
+then start a movement session. During the session, affirmations are played 
+at regular intervals (e.g., every 60 seconds or every 0.5 miles). The app 
+provides positive reinforcement after sessions and tracks progress over time.
+
+================================================================================
+TECH STACK
+================================================================================
+
+FRONTEND FRAMEWORK
+------------------
+- React Native 0.81.5
+- React 19.1.0
+- Expo SDK ~54.0.24
+- TypeScript 5.3.3
+
+ROUTING & NAVIGATION
+--------------------
+- Expo Router 6.0.14 (file-based routing)
+- React Navigation (underlying Expo Router)
+
+STATE MANAGEMENT
+----------------
+- Zustand 4.5.5 (lightweight state management)
+  - authStore: User authentication state
+  - sessionStore: Session state, selected affirmations, settings
+  - onboardingStore: Onboarding completion and preferences
+  - affirmationAnalyticsStore: Analytics tracking
+  - moodStore: User mood tracking
+  - offlineStore: Offline state management
+
+PERSISTENCE & STORAGE
+---------------------
+- AsyncStorage 2.2.0: User preferences, onboarding data, affirmations
+- Expo SQLite 16.0.9: Session logs and history
+- Firebase: Authentication and cloud sync (optional)
+
+AUTHENTICATION
+--------------
+- Firebase Auth 10.14.1
+  - Email/password authentication
+  - Anonymous guest mode
+  - Persistent auth state
+
+AUDIO & MEDIA
+-------------
+- Expo Audio 1.0.14: Audio file playback
+- Expo Speech 14.0.7: Text-to-speech (TTS) for affirmations
+- Expo File System 19.0.18: File management for custom recordings
+
+LOCATION SERVICES
+-----------------
+- Expo Location 19.0.7: GPS tracking for distance-based intervals
+- Foreground location tracking
+- Distance calculation (Haversine formula)
+- Unit conversion (miles/kilometers)
+
+UI/UX LIBRARIES
+---------------
+- React Native SVG 15.15.0: Circular progress indicators
+- React Native Gesture Handler 2.28.0: Swipe gestures
+- React Native Reanimated 4.1.1: Animations
+- React Native Safe Area Context 5.6.0: Safe area handling
+- Expo Haptics 15.0.7: Tactile feedback
+
+UTILITIES
+---------
+- Expo Keep Awake 15.0.7: Prevent screen sleep during sessions
+- Expo Constants 18.0.10: App configuration
+- Expo Asset 12.0.9: Asset management
+- React Native NetInfo 11.4.1: Network status detection
+
+DEVELOPMENT TOOLS
+-----------------
+- Babel 7.25.2: JavaScript transpilation
+- TypeScript: Type checking
+- Expo CLI: Development server and build tools
+
+================================================================================
+APPLICATION ARCHITECTURE
+================================================================================
+
+FOLDER STRUCTURE
+----------------
+AffApp/
+├── app/                    # Expo Router pages (file-based routing)
+│   ├── (auth)/            # Authentication routes
+│   │   ├── login.tsx
+│   │   └── _layout.tsx
+│   ├── (tabs)/            # Main app tabs
+│   │   ├── home.tsx       # Home screen
+│   │   ├── affirmations.tsx # Affirmation selection
+│   │   ├── library.tsx    # Affirmation library browser
+│   │   ├── activity.tsx   # Session history
+│   │   ├── settings.tsx  # App settings
+│   │   └── you/          # User profile section
+│   ├── onboarding.tsx     # Onboarding flow
+│   ├── session.tsx        # Active session screen
+│   ├── summary.tsx       # Post-session summary
+│   ├── congratulations.tsx # First session celebration
+│   └── _layout.tsx        # Root layout
+│
+├── components/            # Reusable UI components
+│   ├── common/
+│   │   └── Button.tsx    # Reusable button component
+│   ├── SwipeableAffirmationCard.tsx # Tinder-style card
+│   ├── LongPressButton.tsx # Long-press stop button
+│   ├── IntervalPicker.tsx # Interval selection UI
+│   ├── MoodSelector.tsx  # Mood tracking
+│   ├── OfflineIndicator.tsx
+│   └── SyncIndicator.tsx
+│
+├── services/              # Business logic layer
+│   ├── affirmationService.ts # Affirmation management
+│   ├── audioService.ts   # Audio playback (TTS + files)
+│   ├── locationService.ts # GPS tracking
+│   ├── storageService.ts # Data persistence
+│   ├── syncService.ts    # Cloud sync
+│   ├── cacheService.ts   # Caching logic
+│   ├── recommendationService.ts # Affirmation recommendations
+│   └── firebase.ts        # Firebase initialization
+│
+├── store/                # Zustand state stores
+│   ├── authStore.ts      # Authentication state
+│   ├── sessionStore.ts   # Session state
+│   ├── onboardingStore.ts # Onboarding state
+│   ├── affirmationAnalyticsStore.ts # Analytics
+│   ├── moodStore.ts      # Mood tracking
+│   └── offlineStore.ts   # Offline state
+│
+├── hooks/                # Custom React hooks
+│   └── useAffirmations.ts # Affirmation management hook
+│
+├── types/                # TypeScript type definitions
+│   ├── affirmation.ts
+│   └── session.ts
+│
+├── constants/            # App constants
+│   └── colors.ts         # Color palette
+│
+├── utils/                # Utility functions
+│   ├── logger.ts         # Logging utility
+│   └── formatTime.ts     # Time formatting
+│
+├── data/                 # Static data
+│   └── affirmations.json # Affirmation bank (400+ items)
+│
+└── assets/               # Images, fonts, etc.
+    ├── red-panda.png
+    ├── icon.png
+    └── splash.png
+
+STATE MANAGEMENT PATTERN
+------------------------
+The app uses a hybrid approach:
+- Local component state: For UI-specific, transient data (e.g., form inputs, 
+  loading states)
+- Zustand stores: For global app state that needs to persist or be shared 
+  across screens
+- AsyncStorage: For long-term persistence (preferences, selections)
+- SQLite: For session logs and history
+
+DATA FLOW
+---------
+1. User actions trigger component handlers
+2. Handlers update Zustand stores (synchronous)
+3. Stores trigger component re-renders
+4. Persistence happens asynchronously via services
+5. Services write to AsyncStorage/SQLite
+6. Optional cloud sync via Firebase
+
+================================================================================
+USER FLOWS
+================================================================================
+
+NEW USER FLOW
+-------------
+1. App Launch
+   - Check authentication state
+   - Check onboarding completion
+   - Route to appropriate screen
+
+2. Authentication (if not logged in)
+   - Login screen: Email/password or guest mode
+   - Firebase Auth handles authentication
+   - Auth state stored in authStore
+
+3. Onboarding (if not completed)
+   - Step 1: Select affirmation categories (e.g., "Overcoming Anxiety")
+   - Step 2: Choose voice preference (TTS or recorded)
+   - Step 3: Select distance unit (miles/kilometers)
+   - Data saved to onboardingStore and AsyncStorage
+   - Navigate to affirmation selection
+
+4. Affirmation Selection
+   - Display filtered affirmations based on selected categories
+   - Swipeable card interface (Tinder-style)
+   - Swipe right to accept, left to reject
+   - Must select 5-10 affirmations
+   - Selected affirmations saved to sessionStore and AsyncStorage
+
+5. Home Screen
+   - Display selected affirmations count
+   - Show session settings
+   - "Let's Go!" button to start session
+
+6. Session Start
+   - Configure interval type (time or distance)
+   - Set interval value (e.g., 60 seconds, 0.5 miles)
+   - Navigate to session screen
+
+7. Active Session
+   - Display current affirmation
+   - Show elapsed time and distance
+   - Play affirmations at intervals
+   - Circular progress indicator for time intervals
+   - Long-press stop button (1200ms hold)
+
+8. Session End
+   - Save session log to SQLite
+   - Navigate to summary screen
+   - Show session statistics
+   - Display positive reinforcement message
+   - Return to home screen
+
+RETURNING USER FLOW
+-------------------
+1. App Launch
+   - Auto-login if authenticated
+   - Load persisted preferences
+   - Navigate directly to home screen
+
+2. Start Session
+   - Use previously selected affirmations
+   - Use saved session settings
+   - Start session immediately
+
+3. Session & Summary
+   - Same as new user flow steps 7-8
+
+================================================================================
+KEY FEATURES
+================================================================================
+
+AUTHENTICATION
+--------------
+- Email/password sign up and sign in
+- Anonymous guest mode (no account required)
+- Persistent authentication state
+- Sign out functionality
+- Firebase Auth integration
+
+ONBOARDING
+----------
+- 3-step onboarding flow
+- Category selection (7 categories available)
+- Voice preference selection
+- Distance unit preference
+- Data persistence
+- Non-medical disclaimer
+
+AFFIRMATION MANAGEMENT
+---------------------
+- 400+ affirmation bank organized by category
+- 7 categories:
+  * Overcoming Anxiety
+  * Depression
+  * Building Up Confidence
+  * Building Up Self-Worth
+  * Reinforcing Confidence and Self-Worth
+  * Believing in Oneself
+  * Self-Love
+- Filter affirmations by selected categories
+- Search functionality
+- Swipeable card selection interface
+- Selection validation (5-10 affirmations required)
+- Persistence of selections
+
+SESSION MANAGEMENT
+------------------
+- Time-based intervals:
+  * 30 seconds
+  * 60 seconds
+  * 90 seconds
+  * 2 minutes
+  * 3 minutes
+  * 5 minutes
+- Distance-based intervals:
+  * 0.25, 0.5, 1.0, 1.5, 2.0 miles/kilometers
+- Real-time timer display
+- Distance tracking with GPS
+- Circular progress indicator
+- Current affirmation display
+- Affirmation playback at intervals
+- Text-to-speech (TTS) for provided affirmations
+- Audio file support for custom affirmations
+- Long-press stop (1200ms hold)
+- Haptic feedback on interactions
+- Keep-awake during session (prevents screen sleep)
+
+AUDIO PLAYBACK
+--------------
+- Text-to-Speech (TTS) using expo-speech
+- Audio file playback using expo-audio
+- Automatic voice selection based on preference
+- Audio plays over background music
+- Error handling for audio failures
+
+LOCATION TRACKING
+-----------------
+- Foreground location permission request
+- GPS tracking during sessions
+- Distance calculation using Haversine formula
+- Distance smoothing algorithm
+- Unit conversion (miles/kilometers)
+- Graceful fallback to time intervals if permission denied
+
+SESSION TRACKING
+----------------
+- Session logs stored in SQLite
+- Track duration, distance, affirmations played
+- Session history with filtering (week/month/all)
+- Statistics calculation
+- Streak tracking
+- First session celebration
+
+POSITIVE REINFORCEMENT
+----------------------
+- 10 randomized positive messages
+- Session statistics display
+- Encouragement text
+- First session special screen
+
+SETTINGS
+--------
+- Session settings configuration
+- Interval type selection
+- Time/distance interval presets
+- Distance unit toggle
+- Reset onboarding option
+- Sign out functionality
+
+OFFLINE SUPPORT
+---------------
+- Offline indicator
+- Local data persistence
+- Sync indicator for cloud sync status
+- Cached affirmations
+- Works without internet connection
+
+================================================================================
+TECHNICAL IMPLEMENTATION DETAILS
+================================================================================
+
+ROUTING SYSTEM
+--------------
+Uses Expo Router's file-based routing:
+- Routes defined by file structure in app/ directory
+- (auth) and (tabs) are route groups
+- Dynamic routes supported
+- Deep linking configured
+- Navigation via router.push() and router.replace()
+
+STATE MANAGEMENT ARCHITECTURE
+------------------------------
+Zustand stores follow this pattern:
+- Store definition with TypeScript interfaces
+- Actions as store methods
+- Selectors for computed values
+- Integration with React components via hooks
+
+Example: sessionStore
+- State: selectedAffirmations, sessionSettings, currentSession
+- Actions: setSelectedAffirmations, startSession, endSession, 
+           updateSessionState
+- Used across: home, session, affirmations screens
+
+PERSISTENCE STRATEGY
+--------------------
+Multi-layer persistence:
+1. Zustand stores: In-memory state (fast access)
+2. AsyncStorage: User preferences, selections (key-value storage)
+3. SQLite: Session logs (structured data, queryable)
+4. Firebase: Optional cloud sync (future enhancement)
+
+AUDIO PLAYBACK SYSTEM
+---------------------
+AudioService handles both TTS and file playback:
+- TTS: Uses expo-speech for text-to-speech
+- Files: Uses expo-audio for recorded audio
+- Automatic selection based on affirmation.isCustom flag
+- Playback completion detection
+- Error handling and retry logic
+
+LOCATION TRACKING SYSTEM
+------------------------
+LocationService provides:
+- Permission request/check
+- Foreground location tracking
+- Distance calculation (Haversine formula)
+- Distance smoothing (moving average)
+- Unit conversion
+- Callback-based updates
+- Cleanup on session end
+
+SESSION INTERVAL SYSTEM
+-----------------------
+Two interval types:
+1. Time-based: setInterval() triggers every X seconds
+2. Distance-based: Location callback checks distance delta
+
+Both update:
+- Current affirmation index (cycles through selections)
+- Session state (duration, distance, affirmations played)
+- UI display (timer, progress, current affirmation)
+
+AFFIRMATION SELECTION SYSTEM
+----------------------------
+SwipeableAffirmationCard component:
+- PanResponder for gesture detection
+- Animated API for card movement
+- Swipe thresholds for accept/reject
+- Web fallback with buttons
+- Analytics tracking (accept/reject)
+
+useAffirmations hook:
+- Filters affirmations by categories
+- Manages selection state
+- Integrates with sessionStore
+- Handles persistence
+- Provides validation
+
+ERROR HANDLING
+--------------
+- Try-catch blocks around async operations
+- Error logging via logger utility
+- User-friendly error messages
+- Graceful fallbacks (e.g., time intervals if location denied)
+- Error boundaries (React error boundaries)
+
+PERFORMANCE OPTIMIZATIONS
+-------------------------
+- useMemo for filtered affirmations
+- useRef for interval references
+- useEffect cleanup for intervals
+- Lazy loading of affirmations
+- Optimized re-renders with Zustand selectors
+
+================================================================================
+DATA MODELS
+================================================================================
+
+AFFIRMATION MODEL
+------------------
+{
+  id: string              // Unique identifier
+  text: string           // Affirmation text
+  category: string       // Category name
+  isCustom?: boolean     // User-recorded flag
+  audioUri?: string      // Audio file URI (if custom)
+}
+
+SESSION STATE MODEL
+-------------------
+{
+  startTime: number      // Timestamp
+  endTime?: number       // Timestamp (optional)
+  duration: number       // Seconds
+  distance: number        // Miles or kilometers
+  affirmationsPlayed: string[]  // Array of affirmation IDs
+  currentAffirmationIndex: number
+  isActive: boolean
+}
+
+SESSION SETTINGS MODEL
+----------------------
+{
+  intervalType: 'time' | 'distance'
+  timeInterval?: number  // Seconds
+  distanceInterval?: number  // Miles or kilometers
+  distanceUnit: 'miles' | 'kilometers'
+}
+
+ONBOARDING DATA MODEL
+---------------------
+{
+  preferredCategories: string[]  // Selected categories
+  voicePreference: 'tts' | 'recorded'
+  unitPreference: 'miles' | 'kilometers'
+}
+
+SESSION LOG MODEL
+-----------------
+{
+  id: string
+  userId: string
+  startTime: number
+  endTime: number
+  duration: number
+  distance: number
+  affirmationsPlayed: string[]
+  createdAt: number
+}
+
+================================================================================
+SECURITY & BEST PRACTICES
+================================================================================
+
+AUTHENTICATION SECURITY
+-----------------------
+- Firebase Auth handles password hashing
+- Secure token storage
+- Session management
+- Anonymous auth for guest mode
+
+DATA SECURITY
+-------------
+- Input validation
+- Data sanitization
+- Secure storage (AsyncStorage encrypted on device)
+- SQLite database security
+
+PRIVACY
+-------
+- User data stored locally by default
+- Optional cloud sync (user-controlled)
+- No tracking or analytics without consent
+- Non-medical disclaimer
+
+CODE QUALITY
+------------
+- TypeScript for type safety
+- Consistent code organization
+- Error handling throughout
+- Logging for debugging (dev mode only)
+- Reusable components and hooks
+
+================================================================================
+DEPLOYMENT & DISTRIBUTION
+================================================================================
+
+DEVELOPMENT
+-----------
+- Expo development server
+- Hot reloading
+- Expo Go app for testing
+- Simulator/emulator support
+
+BUILD & DISTRIBUTION
+--------------------
+- Expo Application Services (EAS) for builds
+- iOS App Store distribution
+- Google Play Store distribution
+- Web deployment (optional)
+
+ENVIRONMENT CONFIGURATION
+-------------------------
+- .env file for Firebase config
+- Environment variables for API keys
+- Platform-specific configurations
+
+================================================================================
+FUTURE ENHANCEMENTS (PLANNED)
+================================================================================
+
+- Background location tracking
+- Custom affirmation recording UI
+- Negativity screening for custom affirmations
+- Cloud sync with Firebase Firestore
+- Social features (sharing sessions)
+- Advanced analytics dashboard
+- Mood tracking integration
+- Push notifications for reminders
+- Widget support (iOS/Android)
+- Apple Watch / Wear OS support
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+
+AUTHENTICATION
+- [ ] Email/password sign up
+- [ ] Email/password sign in
+- [ ] Guest mode
+- [ ] Sign out
+- [ ] Persistent auth state
+
+ONBOARDING
+- [ ] Complete all 3 steps
+- [ ] Category selection
+- [ ] Voice preference
+- [ ] Unit preference
+- [ ] Data persistence
+
+AFFIRMATION SELECTION
+- [ ] Browse library
+- [ ] Filter by category
+- [ ] Search affirmations
+- [ ] Swipe to select (5-10)
+- [ ] Selection persistence
+
+SESSION FLOW
+- [ ] Start session
+- [ ] Time intervals work
+- [ ] Distance intervals work
+- [ ] Affirmations play correctly
+- [ ] Timer displays correctly
+- [ ] Distance tracks correctly
+- [ ] Long-press stop works
+- [ ] Session saves correctly
+
+SUMMARY & HISTORY
+- [ ] Summary displays correctly
+- [ ] Session history loads
+- [ ] Statistics calculate correctly
+- [ ] Filtering works (week/month/all)
+
+SETTINGS
+- [ ] Settings save correctly
+- [ ] Interval changes apply
+- [ ] Unit changes apply
+- [ ] Reset onboarding works
+
+================================================================================
+KNOWN ISSUES & LIMITATIONS
+================================================================================
+
+CURRENT LIMITATIONS
+-------------------
+- Foreground-only location tracking (no background)
+- No custom affirmation recording UI yet
+- No cloud sync implementation
+- Basic distance smoothing algorithm
+- No offline conflict resolution
+
+PLATFORM LIMITATIONS
+---------------------
+- iOS: Requires location permission for distance intervals
+- Android: Requires location permission for distance intervals
+- Web: Limited haptic feedback support
+- Web: Swipe gestures use button fallback
+
+================================================================================
+MAINTENANCE & SUPPORT
+================================================================================
+
+LOGGING
+-------
+- Development-only logging via logger utility
+- Console logs for debugging
+- Error tracking (future: Sentry integration)
+
+MONITORING
+----------
+- Session analytics tracked locally
+- User actions tracked (accept/reject affirmations)
+- Performance metrics (future)
+
+UPDATES
+-------
+- Over-the-air updates via Expo Updates
+- App store updates for native changes
+- Feature flags support (future)
+
+================================================================================
+END OF DOCUMENT
+================================================================================
+
+Last Updated: 2024
+Version: 1.0.0
+Platform: React Native / Expo
+

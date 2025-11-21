@@ -6,6 +6,7 @@ import { useSessionStore } from '../../store/sessionStore';
 import IntervalPicker from '../../components/IntervalPicker';
 import { SessionSettings } from '../../types/session';
 import { storageService } from '../../services/storageService';
+import { COLORS } from '../../constants/colors';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -132,7 +133,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   content: {
     padding: 24,
@@ -143,12 +144,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.textSecondary,
   },
   section: {
     marginBottom: 32,
@@ -156,31 +157,31 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 16,
   },
   settingItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: COLORS.border,
   },
   settingLabel: {
     fontSize: 16,
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 4,
   },
   settingValue: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.textSecondary,
   },
   settingButton: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: COLORS.border,
   },
   settingButtonText: {
     fontSize: 16,
-    color: '#4CAF50',
+    color: COLORS.primary,
   },
   button: {
     height: 56,
@@ -189,14 +190,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signOutButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
   },
   signOutButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F44336',
+    color: COLORS.accent,
   },
 });
 

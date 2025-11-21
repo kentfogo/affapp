@@ -21,10 +21,20 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => {
-  // Listen to auth state changes
-  onAuthStateChanged(auth, (user) => {
-    set({ user, isLoading: false });
-  });
+  // Listen to auth state changes (only if auth is initialized)
+  if (auth) {
+    try {
+      onAuthStateChanged(auth, (user) => {
+        set({ user, isLoading: false });
+      });
+    } catch (error) {
+      console.warn('Failed to set up auth state listener:', error);
+      set({ isLoading: false });
+    }
+  } else {
+    // If auth is not initialized, set loading to false
+    set({ isLoading: false });
+  }
 
   return {
     user: null,
@@ -32,6 +42,11 @@ export const useAuthStore = create<AuthState>((set) => {
     error: null,
     setUser: (user) => set({ user }),
     signInAnonymously: async () => {
+      if (!auth) {
+        const error = new Error('Firebase Auth is not initialized');
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
       try {
         set({ isLoading: true, error: null });
         await signInAnonymously(auth);
@@ -41,6 +56,11 @@ export const useAuthStore = create<AuthState>((set) => {
       }
     },
     signInWithEmail: async (email: string, password: string) => {
+      if (!auth) {
+        const error = new Error('Firebase Auth is not initialized');
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
       try {
         set({ isLoading: true, error: null });
         await signInWithEmailAndPassword(auth, email, password);
@@ -50,6 +70,11 @@ export const useAuthStore = create<AuthState>((set) => {
       }
     },
     signUpWithEmail: async (email: string, password: string) => {
+      if (!auth) {
+        const error = new Error('Firebase Auth is not initialized');
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
       try {
         set({ isLoading: true, error: null });
         await createUserWithEmailAndPassword(auth, email, password);
@@ -59,6 +84,10 @@ export const useAuthStore = create<AuthState>((set) => {
       }
     },
     signOut: async () => {
+      if (!auth) {
+        set({ user: null, isLoading: false });
+        return;
+      }
       try {
         set({ isLoading: true, error: null });
         await firebaseSignOut(auth);

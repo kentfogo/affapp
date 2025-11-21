@@ -1,22 +1,14 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { Affirmation } from '../types/affirmation';
 
 class AudioService {
-  private sound: Audio.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private isPlaying = false;
 
   async initialize() {
-    try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
-    } catch (error) {
-      console.error('Error initializing audio:', error);
-    }
+    // expo-audio doesn't require explicit initialization like expo-av
+    // Audio players are created on-demand
   }
 
   async playAffirmation(affirmation: Affirmation): Promise<void> {
@@ -39,20 +31,35 @@ class AudioService {
 
   private async playAudioFile(uri: string): Promise<void> {
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true }
-      );
-      this.sound = sound;
+      // Create a new audio player for the file
+      this.player = createAudioPlayer(uri);
       this.isPlaying = true;
 
-      await sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+      // Set up playback completion listener
+      this.player.addListener('playbackStatusUpdate', () => {
+        if (this.player && !this.player.playing && this.player.isLoaded) {
           this.isPlaying = false;
         }
       });
+
+      // Start playback
+      this.player.play();
+      
+      // Wait for playback to finish
+      await new Promise<void>((resolve) => {
+        const checkStatus = () => {
+          if (!this.player || !this.player.playing) {
+            this.isPlaying = false;
+            resolve();
+          } else {
+            setTimeout(checkStatus, 100);
+          }
+        };
+        checkStatus();
+      });
     } catch (error) {
       console.error('Error playing audio file:', error);
+      this.isPlaying = false;
       throw error;
     }
   }
@@ -87,26 +94,29 @@ class AudioService {
 
   async stop(): Promise<void> {
     try {
-      if (this.sound) {
-        await this.sound.unloadAsync();
-        this.sound = null;
+      if (this.player) {
+        this.player.pause();
+        this.player.remove();
+        this.player = null;
       }
       Speech.stop();
       this.isPlaying = false;
     } catch (error) {
       console.error('Error stopping audio:', error);
+      this.isPlaying = false;
     }
   }
 
   async pause(): Promise<void> {
     try {
-      if (this.sound) {
-        await this.sound.pauseAsync();
+      if (this.player) {
+        this.player.pause();
       }
       Speech.stop();
       this.isPlaying = false;
     } catch (error) {
       console.error('Error pausing audio:', error);
+      this.isPlaying = false;
     }
   }
 
@@ -120,4 +130,5 @@ class AudioService {
 }
 
 export const audioService = new AudioService();
+
 

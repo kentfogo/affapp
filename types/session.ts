@@ -13,7 +13,7 @@ export interface SessionState {
   endTime?: number;
   duration: number; // seconds
   distance: number; // miles or km
-  affirmationsPlayed: number[];
+  affirmationsPlayed: string[];
   currentAffirmationIndex: number;
   isActive: boolean;
 }
@@ -25,7 +25,7 @@ export interface SessionLog {
   endTime: number;
   duration: number;
   distance: number;
-  affirmationsPlayed: number[];
+  affirmationsPlayed: string[];
   createdAt: number;
 }
 

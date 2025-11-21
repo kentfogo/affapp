@@ -6,13 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { useAuthStore } from '../../store/authStore';
-import { storageService } from '../../services/storageService';
-import { SessionLog } from '../../types/session';
-import { formatTime } from '../../utils/formatTime';
-import { COLORS } from '../../constants/colors';
+import { useAuthStore } from '../../../store/authStore';
+import { storageService } from '../../../services/storageService';
+import { SessionLog } from '../../../types/session';
+import { formatTime } from '../../../utils/formatTime';
+import { COLORS } from '../../../constants/colors';
 
-export default function ActivityScreen() {
+export default function ActivitiesScreen() {
   const { user } = useAuthStore();
   const [sessions, setSessions] = useState<SessionLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,23 +60,29 @@ export default function ActivityScreen() {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    // Reset time to midnight for accurate day comparison
+    const dateMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const diffTime = nowMidnight.getTime() - dateMidnight.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    return date.toLocaleDateString();
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    
+    // For older dates, show formatted date (e.g., "Jan 15")
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const stats = getStats();
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+    <ScrollView 
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Your Activity</Text>
         <Text style={styles.subtitle}>Track your mindful movement</Text>
@@ -150,53 +156,47 @@ export default function ActivityScreen() {
         </View>
       </View>
 
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Recent Sessions</Text>
-          {isLoading ? (
-            <Text style={styles.emptyText}>Loading...</Text>
-          ) : sessions.length === 0 ? (
-            <Text style={styles.emptyText}>No sessions yet. Start your first session!</Text>
-          ) : (
-            sessions.map((session) => (
-              <View key={session.id} style={styles.sessionCard}>
-                <View style={styles.sessionHeader}>
-                  <Text style={styles.sessionDate}>{formatDate(session.createdAt)}</Text>
-                  <View style={styles.affirmationBadge}>
-                    <Text style={styles.affirmationBadgeText}>
-                      {session.affirmationsPlayed.length} affirmations
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.sessionStats}>
-                  <Text style={styles.sessionStat}>
-                    Duration {formatTime(session.duration)}
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Recent Sessions</Text>
+        {isLoading ? (
+          <Text style={styles.emptyText}>Loading...</Text>
+        ) : sessions.length === 0 ? (
+          <Text style={styles.emptyText}>No sessions yet. Start your first session!</Text>
+        ) : (
+          sessions.map((session) => (
+            <View key={session.id} style={styles.sessionCard}>
+              <View style={styles.sessionHeader}>
+                <Text style={styles.sessionDate}>{formatDate(session.createdAt)}</Text>
+                <View style={styles.affirmationBadge}>
+                  <Text style={styles.affirmationBadgeText}>
+                    {session.affirmationsPlayed.length} affirmations
                   </Text>
-                  {session.distance > 0 && (
-                    <Text style={styles.sessionStat}>
-                      Distance {session.distance.toFixed(2)} mi
-                    </Text>
-                  )}
                 </View>
               </View>
-            ))
-          )}
-        </View>
-      </ScrollView>
-    </View>
+              <View style={styles.sessionStats}>
+                <Text style={styles.sessionStat}>
+                  Duration {formatTime(session.duration)}
+                </Text>
+                {session.distance > 0 && (
+                  <Text style={styles.sessionStat}>
+                    Distance {session.distance.toFixed(2)} mi
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
   },
   header: {
     padding: 24,
@@ -315,4 +315,5 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
 });
+
 

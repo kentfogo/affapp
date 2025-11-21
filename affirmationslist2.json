@@ -1,0 +1,254 @@
+{
+  "affirmations": [
+    {
+      "id": "anxiety_1",
+      "category": "Overcoming Anxiety",
+      "text": "I am calm and in control of my thoughts."
+    },
+    {
+      "id": "anxiety_2",
+      "category": "Overcoming Anxiety",
+      "text": "I release worry and embrace peace."
+    },
+    {
+      "id": "anxiety_3",
+      "category": "Overcoming Anxiety",
+      "text": "I trust myself to handle whatever comes my way."
+    },
+    {
+      "id": "anxiety_4",
+      "category": "Overcoming Anxiety",
+      "text": "I am safe and grounded in this moment."
+    },
+    {
+      "id": "anxiety_5",
+      "category": "Overcoming Anxiety",
+      "text": "I breathe deeply and let go of tension."
+    },
+    {
+      "id": "anxiety_6",
+      "category": "Overcoming Anxiety",
+      "text": "I am stronger than my anxious thoughts."
+    },
+    {
+      "id": "anxiety_7",
+      "category": "Overcoming Anxiety",
+      "text": "I choose peace over worry."
+    },
+    {
+      "id": "anxiety_8",
+      "category": "Overcoming Anxiety",
+      "text": "I am present and anxiety-free."
+    },
+    {
+      "id": "anxiety_9",
+      "category": "Overcoming Anxiety",
+      "text": "I release fear and welcome calm."
+    },
+    {
+      "id": "anxiety_10",
+      "category": "Overcoming Anxiety",
+      "text": "I am in charge of how I feel and I choose happiness."
+    },
+    {
+      "id": "confidence_1",
+      "category": "Building Confidence",
+      "text": "I am confident in my abilities."
+    },
+    {
+      "id": "confidence_2",
+      "category": "Building Confidence",
+      "text": "I believe in myself completely."
+    },
+    {
+      "id": "confidence_3",
+      "category": "Building Confidence",
+      "text": "I am capable of achieving great things."
+    },
+    {
+      "id": "confidence_4",
+      "category": "Building Confidence",
+      "text": "I trust my decisions and judgment."
+    },
+    {
+      "id": "confidence_5",
+      "category": "Building Confidence",
+      "text": "I am worthy of success and recognition."
+    },
+    {
+      "id": "confidence_6",
+      "category": "Building Confidence",
+      "text": "I embrace challenges with courage."
+    },
+    {
+      "id": "confidence_7",
+      "category": "Building Confidence",
+      "text": "I am proud of who I am becoming."
+    },
+    {
+      "id": "confidence_8",
+      "category": "Building Confidence",
+      "text": "I speak up for myself with assurance."
+    },
+    {
+      "id": "confidence_9",
+      "category": "Building Confidence",
+      "text": "I am powerful and in control of my life."
+    },
+    {
+      "id": "confidence_10",
+      "category": "Building Confidence",
+      "text": "I radiate confidence in everything I do."
+    },
+    {
+      "id": "selflove_1",
+      "category": "Self-Love",
+      "text": "I am worthy of love and respect."
+    },
+    {
+      "id": "selflove_2",
+      "category": "Self-Love",
+      "text": "I love and accept myself unconditionally."
+    },
+    {
+      "id": "selflove_3",
+      "category": "Self-Love",
+      "text": "I am beautiful inside and out."
+    },
+    {
+      "id": "selflove_4",
+      "category": "Self-Love",
+      "text": "I deserve all the good things life offers."
+    },
+    {
+      "id": "selflove_5",
+      "category": "Self-Love",
+      "text": "I treat myself with kindness and compassion."
+    },
+    {
+      "id": "selflove_6",
+      "category": "Self-Love",
+      "text": "I am enough exactly as I am."
+    },
+    {
+      "id": "selflove_7",
+      "category": "Self-Love",
+      "text": "I honor my needs and boundaries."
+    },
+    {
+      "id": "selflove_8",
+      "category": "Self-Love",
+      "text": "I celebrate my uniqueness and individuality."
+    },
+    {
+      "id": "selflove_9",
+      "category": "Self-Love",
+      "text": "I am my own best friend and supporter."
+    },
+    {
+      "id": "selflove_10",
+      "category": "Self-Love",
+      "text": "I choose to see my worth every day."
+    },
+    {
+      "id": "focus_1",
+      "category": "Focus & Motivation",
+      "text": "I am focused and driven toward my goals."
+    },
+    {
+      "id": "focus_2",
+      "category": "Focus & Motivation",
+      "text": "I accomplish tasks with clarity and purpose."
+    },
+    {
+      "id": "focus_3",
+      "category": "Focus & Motivation",
+      "text": "I am motivated to create the life I desire."
+    },
+    {
+      "id": "focus_4",
+      "category": "Focus & Motivation",
+      "text": "I stay committed to my vision every day."
+    },
+    {
+      "id": "focus_5",
+      "category": "Focus & Motivation",
+      "text": "I have unlimited energy and enthusiasm."
+    },
+    {
+      "id": "focus_6",
+      "category": "Focus & Motivation",
+      "text": "I turn my dreams into reality through action."
+    },
+    {
+      "id": "focus_7",
+      "category": "Focus & Motivation",
+      "text": "I am disciplined and dedicated to my success."
+    },
+    {
+      "id": "focus_8",
+      "category": "Focus & Motivation",
+      "text": "I eliminate distractions and stay on track."
+    },
+    {
+      "id": "focus_9",
+      "category": "Focus & Motivation",
+      "text": "I am unstoppable in pursuing my ambitions."
+    },
+    {
+      "id": "focus_10",
+      "category": "Focus & Motivation",
+      "text": "I wake up inspired and ready to achieve."
+    },
+    {
+      "id": "wellness_1",
+      "category": "General Wellness",
+      "text": "I am healthy, strong, and full of vitality."
+    },
+    {
+      "id": "wellness_2",
+      "category": "General Wellness",
+      "text": "I nourish my body with healthy choices."
+    },
+    {
+      "id": "wellness_3",
+      "category": "General Wellness",
+      "text": "I am grateful for my body and all it does."
+    },
+    {
+      "id": "wellness_4",
+      "category": "General Wellness",
+      "text": "I prioritize rest and self-care."
+    },
+    {
+      "id": "wellness_5",
+      "category": "General Wellness",
+      "text": "I radiate positive energy and good health."
+    },
+    {
+      "id": "wellness_6",
+      "category": "General Wellness",
+      "text": "I am balanced in mind, body, and spirit."
+    },
+    {
+      "id": "wellness_7",
+      "category": "General Wellness",
+      "text": "I listen to my body's needs with awareness."
+    },
+    {
+      "id": "wellness_8",
+      "category": "General Wellness",
+      "text": "I am creating a life of wellness and joy."
+    },
+    {
+      "id": "wellness_9",
+      "category": "General Wellness",
+      "text": "I feel energized and alive every day."
+    },
+    {
+      "id": "wellness_10",
+      "category": "General Wellness",
+      "text": "I am grateful for this moment and my wellbeing."
+    }
+  ]
+}

@@ -1,25 +1,30 @@
 import { Affirmation, AffirmationCategory } from '../types/affirmation';
-import affirmationsData from '../data/affirmations.json';
+import affirmationsData from '../affirmationslist2.json';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class AffirmationService {
   private categories: AffirmationCategory[] = [];
+  private CACHE_KEY = '@cached_affirmations';
 
   constructor() {
     this.loadAffirmations();
   }
 
   private loadAffirmations(): void {
-    const data = affirmationsData as Record<string, Array<{ id: number; text: string }>>;
+    const data = affirmationsData as { affirmations: Affirmation[] };
     
-    this.categories = Object.entries(data).map(([categoryName, items]) => ({
-      name: categoryName,
-      affirmations: items.map((item) => ({
-        id: item.id,
-        text: item.text,
-        category: categoryName,
-        isCustom: false,
-      })),
-    }));
+    // Group affirmations by category
+    const grouped = data.affirmations.reduce((acc, aff) => {
+      const existing = acc.find(c => c.name === aff.category);
+      if (existing) {
+        existing.affirmations.push(aff);
+      } else {
+        acc.push({ name: aff.category, affirmations: [aff] });
+      }
+      return acc;
+    }, [] as AffirmationCategory[]);
+    
+    this.categories = grouped;
   }
 
   getAllCategories(): AffirmationCategory[] {
@@ -35,7 +40,17 @@ class AffirmationService {
     return this.categories.flatMap((cat) => cat.affirmations);
   }
 
-  getAffirmationById(id: number): Affirmation | undefined {
+  // Filter affirmations by selected categories (goals)
+  getFilteredAffirmations(selectedCategories: string[]): Affirmation[] {
+    if (selectedCategories.length === 0) {
+      return this.getAllAffirmations();
+    }
+    return this.categories
+      .filter(cat => selectedCategories.includes(cat.name))
+      .flatMap(cat => cat.affirmations);
+  }
+
+  getAffirmationById(id: string): Affirmation | undefined {
     return this.getAllAffirmations().find((aff) => aff.id === id);
   }
 
@@ -44,6 +59,25 @@ class AffirmationService {
     return this.getAllAffirmations().filter((aff) =>
       aff.text.toLowerCase().includes(lowerQuery)
     );
+  }
+
+  // Offline support
+  async cacheAffirmations(affirmations: Affirmation[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(this.CACHE_KEY, JSON.stringify(affirmations));
+    } catch (error) {
+      console.error('Error caching affirmations:', error);
+    }
+  }
+
+  async getCachedAffirmations(): Promise<Affirmation[]> {
+    try {
+      const cached = await AsyncStorage.getItem(this.CACHE_KEY);
+      return cached ? JSON.parse(cached) : [];
+    } catch (error) {
+      console.error('Error retrieving cached affirmations:', error);
+      return [];
+    }
   }
 }
 
