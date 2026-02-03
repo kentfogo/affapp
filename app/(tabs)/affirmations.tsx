@@ -16,7 +16,7 @@ import { useAffirmationAnalyticsStore } from '../../store/affirmationAnalyticsSt
 import { affirmationService } from '../../services/affirmationService';
 import { storageService } from '../../services/storageService';
 import { Affirmation } from '../../types/affirmation';
-import SwipeableAffirmationCard from '../../components/SwipeableAffirmationCard';
+import { SwipeableAffirmationCard } from '../../components/SwipeableAffirmationCard';
 import { COLORS } from '../../constants/colors';
 
 export default function AffirmationsScreen() {
@@ -32,6 +32,12 @@ export default function AffirmationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const doneButtonScale = new Animated.Value(0);
   const isButtonVisible = useRef(false);
+  const currentIndexRef = useRef(0);
+
+  // Keep ref in sync with state for use in callbacks
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   useEffect(() => {
     loadAnalytics();
@@ -106,41 +112,77 @@ export default function AffirmationsScreen() {
   };
 
   const handleSwipeRight = async () => {
-    // Accept affirmation
+    // Accept affirmation - use ref to get current index to avoid closure issues
     await Haptics.selectionAsync();
-    const affirmation = filteredAffirmations[currentIndex];
-    
-    // Track analytics
-    trackAccept(affirmation.id);
-    
-    // Check if already at max (10)
-    if (selectedIds.size >= 10) {
-      Alert.alert('Maximum Reached', 'You can select up to 10 affirmations');
+    const index = currentIndexRef.current;
+    const affirmation = filteredAffirmations[index];
+
+    if (!affirmation) {
+      console.log('No affirmation at index:', index);
       return;
     }
-    
-    setSelectedIds(prev => new Set([...prev, affirmation.id]));
 
-    if (currentIndex < filteredAffirmations.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
+    console.log('Accepting affirmation:', affirmation.id, 'at index:', index);
+
+    // Track analytics
+    trackAccept(affirmation.id);
+
+    // Only add if not already selected
+    setSelectedIds((prev) => {
+      // Already selected: just return previous set
+      if (prev.has(affirmation.id)) {
+        console.log('Already selected:', affirmation.id);
+        return prev;
+      }
+
+      // Enforce maximum of 10 selections
+      if (prev.size >= 10) {
+        Alert.alert('Maximum Reached', 'You can select up to 10 affirmations');
+        return prev;
+      }
+
+      console.log('Adding to selected:', affirmation.id, 'new count:', prev.size + 1);
+      return new Set([...prev, affirmation.id]);
+    });
+
+    // Always advance to next card if available
+    setCurrentIndex((prev) => {
+      if (prev < filteredAffirmations.length - 1) {
+        const next = prev + 1;
+        currentIndexRef.current = next;
+        return next;
+      }
       Alert.alert('Done', 'You\'ve reviewed all affirmations!');
-    }
+      return prev;
+    });
   };
 
   const handleSwipeLeft = async () => {
-    // Reject affirmation
+    // Reject affirmation - use ref to get current index to avoid closure issues
     await Haptics.selectionAsync();
-    const affirmation = filteredAffirmations[currentIndex];
-    
+    const index = currentIndexRef.current;
+    const affirmation = filteredAffirmations[index];
+
+    if (!affirmation) {
+      console.log('No affirmation at index:', index);
+      return;
+    }
+
+    console.log('Rejecting affirmation:', affirmation.id, 'at index:', index);
+
     // Track analytics
     trackReject(affirmation.id);
-    
-    if (currentIndex < filteredAffirmations.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
+
+    // Always advance to next card if available
+    setCurrentIndex((prev) => {
+      if (prev < filteredAffirmations.length - 1) {
+        const next = prev + 1;
+        currentIndexRef.current = next;
+        return next;
+      }
       Alert.alert('Done', 'You\'ve reviewed all affirmations!');
-    }
+      return prev;
+    });
   };
 
   const handleDone = async () => {
@@ -211,29 +253,66 @@ export default function AffirmationsScreen() {
             style={[styles.progressFill, { width: `${progressPercent}%` }]}
           />
         </View>
-        <Text style={styles.progressText}>
-          {currentIndex + 1} / {filteredAffirmations.length}
-        </Text>
       </View>
 
-      {/* Counter */}
+      {/* Card Stack */}
+      <View style={styles.cardContainer}>
+        {currentIndex >= filteredAffirmations.length ? (
+          <View style={styles.completedContainer}>
+            <Text style={styles.completedText}>
+              All done! You selected {selectedIds.size} affirmations.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* Next card behind current */}
+            {currentIndex < filteredAffirmations.length - 1 && (
+              <SwipeableAffirmationCard
+                affirmation={filteredAffirmations[currentIndex + 1]}
+                onSwipeLeft={() => {}}
+                onSwipeRight={() => {}}
+                isFirst={false}
+              />
+            )}
+            {/* Current card (swipeable) */}
+            {currentAffirmation && (
+              <SwipeableAffirmationCard
+                affirmation={currentAffirmation}
+                onSwipeRight={handleSwipeRight}
+                onSwipeLeft={handleSwipeLeft}
+                isFirst={true}
+              />
+            )}
+          </>
+        )}
+      </View>
+
+      {/* Counter (moved below cards so it can't be covered) */}
       <View style={styles.counterContainer}>
         <Text style={styles.counterText}>
           {selectedIds.size}/10 selected
         </Text>
       </View>
 
-      {/* Card Stack */}
-      <View style={styles.cardContainer}>
-        {currentAffirmation && (
-          <SwipeableAffirmationCard
-            affirmation={currentAffirmation}
-            onSwipeRight={handleSwipeRight}
-            onSwipeLeft={handleSwipeLeft}
-            isLast={currentIndex === filteredAffirmations.length - 1}
-          />
-        )}
-      </View>
+      {/* Tap Buttons for Accept / Reject */}
+      {currentIndex < filteredAffirmations.length && (
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.rejectButton]}
+            onPress={handleSwipeLeft}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionButtonText}>✕</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.acceptButton]}
+            onPress={handleSwipeRight}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionButtonText}>✓</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Instructions */}
       <View style={styles.instructions}>
@@ -301,11 +380,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.primary,
   },
-  progressText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    textAlign: 'right',
-  },
   counterContainer: {
     alignItems: 'center',
     marginBottom: 20,
@@ -320,6 +394,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    marginTop: 24,
+  },
+  completedContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  completedText: {
+    fontSize: 20,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 80,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  actionButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rejectButton: {
+    backgroundColor: '#E53935',
+  },
+  acceptButton: {
+    backgroundColor: '#43A047',
+  },
+  actionButtonText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   instructions: {
     alignItems: 'center',

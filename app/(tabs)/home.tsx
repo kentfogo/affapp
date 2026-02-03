@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,17 @@ import {
   Animated,
   Image,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSessionStore } from '../../store/sessionStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
-import { useAuthStore } from '../../store/authStore';
+import { useMoodStore, MoodRating } from '../../store/moodStore';
 import { storageService } from '../../services/storageService';
+import { SessionSettings } from '../../types/session';
+import SessionSettingsModal from '../../components/SessionSettingsModal';
+import MoodCheckModal from '../../components/MoodCheckModal';
 import { COLORS } from '../../constants/colors';
 
 const HAS_SEEN_QUOTE_KEY = '@has_seen_quote';
@@ -23,11 +26,13 @@ const HAS_SEEN_QUOTE_KEY = '@has_seen_quote';
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuthStore();
   const { selectedAffirmations, sessionSettings, setSelectedAffirmations, setSessionSettings } = useSessionStore();
   const { data: onboardingData } = useOnboardingStore();
+  const { savePreWorkoutMood } = useMoodStore();
   const [showQuote, setShowQuote] = useState(false);
-  const [totalAffirmationsPlayed, setTotalAffirmationsPlayed] = useState(0);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showMoodModal, setShowMoodModal] = useState(false);
+  const [pendingSettings, setPendingSettings] = useState<SessionSettings | null>(null);
   const fadeAnim = useState(new Animated.Value(1))[0];
 
   useEffect(() => {
@@ -45,33 +50,6 @@ export default function HomeScreen() {
     loadData();
   }, []);
 
-  const loadAffirmationsCount = async () => {
-    if (!user) return;
-    
-    try {
-      const allSessions = await storageService.getSessionLogs(user.uid, 1000);
-      const total = allSessions.reduce(
-        (sum, session) => sum + session.affirmationsPlayed.length,
-        0
-      );
-      setTotalAffirmationsPlayed(total);
-    } catch (error) {
-      console.error('Error loading affirmations count:', error);
-    }
-  };
-
-  useEffect(() => {
-    // Load total affirmations played across all sessions
-    loadAffirmationsCount();
-  }, [user]);
-
-  // Refresh count when screen comes into focus (e.g., after completing a session)
-  useFocusEffect(
-    useCallback(() => {
-      loadAffirmationsCount();
-    }, [user])
-  );
-
   useEffect(() => {
     // Check if user has seen quote before
     const checkQuoteStatus = async () => {
@@ -83,7 +61,7 @@ export default function HomeScreen() {
           // Mark as seen
           await AsyncStorage.setItem(HAS_SEEN_QUOTE_KEY, 'true');
           
-          // Fade out quote after 2.5 seconds
+          // Fade out quote after 2 seconds
           const timer = setTimeout(() => {
             Animated.timing(fadeAnim, {
               toValue: 0,
@@ -92,7 +70,7 @@ export default function HomeScreen() {
             }).start(() => {
               setShowQuote(false);
             });
-          }, 2500);
+          }, 2000);
 
           return () => clearTimeout(timer);
         }
@@ -109,16 +87,31 @@ export default function HomeScreen() {
   };
 
   const handleStartSession = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    if (!sessionSettings) {
-      // Default settings
-      setSessionSettings({
-        intervalType: 'time',
-        timeInterval: 60,
-        distanceUnit: onboardingData?.unitPreference || 'miles',
-      });
-    }
+    await Haptics.selectionAsync();
+    setShowSettingsModal(true);
+  };
+
+  const handleConfirmSettings = async (settings: SessionSettings) => {
+    setSessionSettings(settings);
+    await storageService.saveSessionSettings(settings);
+    setShowSettingsModal(false);
+    setPendingSettings(settings);
+    setShowMoodModal(true);
+  };
+
+  const handleMoodSubmit = async (rating: MoodRating) => {
+    const moodEntryId = await savePreWorkoutMood(rating);
+    setShowMoodModal(false);
+    setPendingSettings(null);
+    router.push({
+      pathname: '/session',
+      params: { moodEntryId },
+    });
+  };
+
+  const handleMoodSkip = () => {
+    setShowMoodModal(false);
+    setPendingSettings(null);
     router.push('/session');
   };
 
@@ -159,63 +152,61 @@ export default function HomeScreen() {
         ]}
       >
         <View style={styles.header}>
-        <Text style={styles.title}>Today's Journey</Text>
-        <Text style={styles.subtitle}>Keep moving, keep growing</Text>
-      </View>
+          <Text style={styles.title}>Today's Journey</Text>
+          <Text style={styles.subtitle}>Keep moving, keep growing</Text>
+        </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Ready to Start?</Text>
-        <Text style={styles.cardText}>
-          {selectedAffirmations.length === 0
-            ? 'Select 1-10 affirmations to begin'
-            : `You have ${selectedAffirmations.length} affirmations selected`}
-        </Text>
-
-        {!canStartSession && (
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={handleSelectAffirmations}
-          >
-            <Text style={styles.secondaryButtonText}>
+        <View style={styles.centeredContent}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Ready to Start?</Text>
+            <Text style={styles.cardText}>
               {selectedAffirmations.length === 0
-                ? 'Choose Affirmations'
-                : 'Manage Affirmations'}
+                ? 'Select 1-10 affirmations to begin'
+                : `You have ${selectedAffirmations.length} affirmations selected`}
             </Text>
-          </TouchableOpacity>
-        )}
 
-        <TouchableOpacity
-          style={[
-            styles.button,
-            styles.primaryButton,
-            !canStartSession && styles.buttonDisabled,
-          ]}
-          onPress={handleStartSession}
-          disabled={!canStartSession}
-        >
-          <Text style={styles.buttonText}>Let's Go!</Text>
-        </TouchableOpacity>
-      </View>
+            {!canStartSession && (
+              <TouchableOpacity
+                style={[styles.button, styles.secondaryButton]}
+                onPress={handleSelectAffirmations}
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {selectedAffirmations.length === 0
+                    ? 'Choose Affirmations'
+                    : 'Manage Affirmations'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
-      <View style={styles.stats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>
-            {totalAffirmationsPlayed}
-          </Text>
-          <Text style={styles.statLabel}>Affirmations</Text>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.primaryButton,
+                !canStartSession && styles.buttonDisabled,
+              ]}
+              onPress={handleStartSession}
+              disabled={!canStartSession}
+            >
+              <Text style={styles.buttonText}>Let's Go!</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>
-            {sessionSettings?.intervalType === 'time'
-              ? `${sessionSettings.timeInterval}s`
-              : sessionSettings?.distanceInterval
-              ? `${sessionSettings.distanceInterval} ${sessionSettings.distanceUnit}`
-              : '60s'}
-          </Text>
-          <Text style={styles.statLabel}>Interval</Text>
-        </View>
-      </View>
       </ScrollView>
+
+      <SessionSettingsModal
+        visible={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onStartSession={handleConfirmSettings}
+        initialSettings={sessionSettings || undefined}
+        defaultDistanceUnit={onboardingData?.unitPreference || 'miles'}
+      />
+
+      <MoodCheckModal
+        visible={showMoodModal}
+        type="pre"
+        onSubmit={handleMoodSubmit}
+        onSkip={handleMoodSkip}
+      />
     </View>
   );
 }
@@ -231,9 +222,12 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
     flexGrow: 1,
+  },
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    // Removed justifyContent: 'center' to prevent excessive bottom whitespace
-    // Top padding now handled via safe area insets in contentContainerStyle
+    width: '100%',
   },
   quoteOverlay: {
     position: 'absolute',
@@ -273,7 +267,9 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 0,
+    alignItems: 'center',
+    width: '100%',
   },
   title: {
     fontSize: 32,
@@ -289,7 +285,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: 16,
     padding: 24,
+    marginTop: -60,
     marginBottom: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   cardTitle: {
     fontSize: 20,
@@ -330,24 +330,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.primary,
-  },
-  stats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 24,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
   },
 });
 

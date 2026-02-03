@@ -1,11 +1,19 @@
 export type IntervalType = 'time' | 'distance';
 export type DistanceUnit = 'miles' | 'kilometers';
 
+export type RepetitionMode = 'sequential' | 'random';
+
+export type VoicePreset = 'calm' | 'natural' | 'warm' | 'gentle' | 'energetic';
+
 export interface SessionSettings {
   intervalType: IntervalType;
   timeInterval?: number; // seconds
   distanceInterval?: number; // miles or km
   distanceUnit: DistanceUnit;
+  volume: number; // 0-100
+  repetitionMode: RepetitionMode;
+  playChime: boolean;
+  voicePreset: VoicePreset;
 }
 
 export interface SessionState {

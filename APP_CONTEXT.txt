@@ -1,0 +1,548 @@
+# Mental Victory Practice - App Context
+
+## Project Overview
+
+- **Name:** Mental Victory Practice
+- **Purpose:** Mobile affirmations app that plays personalized affirmations at intervals during movement sessions (walking, running, cycling, yoga, etc.)
+- **Platform:** React Native (Expo) - iOS, Android, Web
+- **Target Users:** People seeking positive reinforcement during physical activities
+
+================================================================================
+## Current State
+================================================================================
+
+### ✅ What's Working
+
+**Authentication & User Management:**
+- ✅ Firebase authentication (email/password + anonymous guest mode)
+- ✅ Password reset functionality with cross-platform UI
+- ✅ User-friendly error messages for login issues
+- ✅ Sign out functionality
+
+**Onboarding Flow:**
+- ✅ Multi-step onboarding (goals, categories, voice, distance units)
+- ✅ Safe area padding for notched devices
+- ✅ Haptic feedback on interactions
+- ✅ Auto-navigation to affirmation selection if none are selected
+- ✅ Debug logging for troubleshooting navigation
+
+**Affirmation Selection:**
+- ✅ Tinder-style swipeable cards
+- ✅ Category-based filtering (Anxiety, Confidence, Self-Love, Focus, Wellness)
+- ✅ Accept/reject buttons with visual feedback
+- ✅ Selection limit (5-10 affirmations)
+- ✅ Persistent storage of selections
+
+**Active Session:**
+- ✅ Circular timer animation (SVG-based)
+- ✅ Real-time distance tracking (expo-location)
+- ✅ Time-based and distance-based intervals
+- ✅ Text-to-speech affirmation playback
+- ✅ Affirmations counter (shows count per session)
+- ✅ Long-press "Hold to Stop" button
+- ✅ Session state persistence
+- ✅ Prevents same affirmation from repeating (fixed race condition bug)
+
+**Home Screen:**
+- ✅ "Today's Journey" dashboard
+- ✅ Red panda logo
+- ✅ "Ready to Start" card with session launcher
+- ✅ Vertically and horizontally centered layout
+- ✅ Sessions completed counter
+
+**Settings:**
+- ✅ Interval picker (time or distance-based)
+- ✅ Distance unit selection (miles/km)
+- ✅ Reset onboarding option
+- ✅ Distance tracking info/guidance text
+- ✅ Safe area padding
+
+**Design & UX:**
+- ✅ Consistent color scheme (COLORS constants: tan/coral/charcoal)
+- ✅ No green colors (removed old theme remnants)
+- ✅ Responsive layouts with safe area insets
+- ✅ Haptic feedback throughout app
+
+### ⚠️ What's Not Working
+
+- None currently reported (all critical bugs from session have been fixed)
+
+### 🔨 What's Missing
+
+**Major Features:**
+- ❌ Map-based session UI (like Strava) - **planned next**
+- ❌ Route visualization during sessions
+- ❌ Session history/analytics dashboard
+- ❌ Custom affirmation recording
+- ❌ Social features (share progress)
+- ❌ Cloud sync for affirmations/settings
+- ❌ Background location tracking (foreground only currently)
+
+**Minor Enhancements:**
+- ❌ Activity type selector (ride/walk/run)
+- ❌ Offline mode indicator
+- ❌ Export session data
+- ❌ Dark mode
+- ❌ Custom affirmation categories
+- ❌ Voice customization (currently uses system TTS)
+
+================================================================================
+## Tech Stack
+================================================================================
+
+### Core Framework
+- React Native: 0.81.5
+- Expo SDK: ~54.0.24
+- TypeScript: 5.3.3
+- Node.js: 18+
+
+### State Management
+- Zustand: 4.5.5 (lightweight state management)
+- Stores: authStore, sessionStore, onboardingStore, affirmationAnalyticsStore
+
+### Navigation
+- Expo Router: 6.0.14 (file-based routing)
+- Tab navigation for main app
+- Stack navigation for flows
+
+### Audio & Media
+- expo-speech: 14.0.7 (text-to-speech)
+- expo-audio: 1.0.14 (audio playback)
+- expo-video: 3.0.14
+
+### Location & Sensors
+- expo-location: 19.0.7 (GPS tracking)
+- expo-haptics: 15.0.7 (haptic feedback)
+- Haversine formula for distance calculation
+
+### Backend & Storage
+- Firebase: 10.14.1 (authentication)
+- AsyncStorage: 2.2.0 (local preferences)
+- expo-sqlite: 16.0.9 (session logs)
+
+### UI & Animation
+- react-native-svg: 15.15.0 (circular timer, icons)
+- react-native-reanimated: 4.1.1 (animations)
+- react-native-gesture-handler: 2.28.0 (swipe gestures)
+- react-native-safe-area-context: 5.6.0 (safe areas)
+
+### Utilities
+- expo-keep-awake: 15.0.7 (prevent screen sleep during sessions)
+- @react-native-community/netinfo: 11.4.1 (network status)
+
+================================================================================
+## File Structure
+================================================================================
+
+AffApp/
+├── app/                           # Expo Router screens
+│   ├── (auth)/                    # Authentication flow
+│   │   ├── _layout.tsx           # Auth stack layout
+│   │   └── login.tsx             # Login/signup screen (✅ recently updated)
+│   ├── (tabs)/                    # Main app tabs
+│   │   ├── _layout.tsx           # Tab bar configuration
+│   │   ├── home.tsx              # Today's Journey dashboard
+│   │   ├── affirmations.tsx      # Swipeable affirmation selection
+│   │   ├── settings.tsx          # App settings (✅ recently updated)
+│   │   ├── library.tsx           # Affirmation library
+│   │   └── you/                  # User profile section
+│   │       └── index.tsx         # Progress & Activities tabs
+│   ├── index.tsx                 # App entry point
+│   ├── onboarding.tsx            # Multi-step onboarding (✅ recently updated)
+│   ├── session.tsx               # Active session screen (circular timer)
+│   ├── session-original.tsx      # PLANNED: Backup of current session screen
+│   ├── summary.tsx               # Post-session summary
+│   └── _layout.tsx               # Root layout
+├── components/                    # Reusable components
+│   ├── Button.tsx                # Generic button component
+│   ├── IntervalPicker.tsx        # Time/distance interval selector
+│   ├── LongPressButton.tsx       # Hold-to-stop button
+│   └── SwipeableAffirmationCard.tsx  # Tinder-style cards
+├── constants/
+│   └── colors.ts                 # App color palette (COLORS)
+├── data/
+│   └── affirmationslist2.json    # 500+ affirmations database
+├── services/                      # Business logic
+│   ├── affirmationService.ts     # Affirmation filtering/loading
+│   ├── audioService.ts           # Audio playback & TTS
+│   ├── firebase.ts               # Firebase initialization
+│   ├── locationService.ts        # GPS tracking & distance calculation
+│   └── storageService.ts         # AsyncStorage & SQLite wrapper
+├── store/                         # Zustand state stores
+│   ├── affirmationAnalyticsStore.ts
+│   ├── authStore.ts              # Auth state (✅ recently updated)
+│   ├── onboardingStore.ts        # Onboarding preferences
+│   └── sessionStore.ts           # Session state management
+├── types/
+│   └── session.ts                # TypeScript type definitions
+├── utils/
+│   ├── formatTime.ts             # Time formatting utilities
+│   └── logger.ts                 # Debug logging
+├── assets/                        # Images, fonts, icons
+├── package.json                  # Dependencies
+├── app.json                      # Expo configuration
+├── tsconfig.json                 # TypeScript config
+└── .env                          # Firebase environment variables
+
+================================================================================
+## SCREEN FLOW CHART
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          APP ENTRY POINT (index.tsx)                        │
+│                        Check Authentication State                           │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+         NOT AUTHENTICATED              AUTHENTICATED
+                │                             │
+                ▼                             ▼
+    ┌───────────────────────┐     ┌──────────────────────────┐
+    │   LOGIN SCREEN        │     │  Check Onboarding Status │
+    │   (auth)/login.tsx    │     └──────────┬───────────────┘
+    │                       │                │
+    │ [Email/Password]      │     ┌──────────┴──────────┐
+    │ [Guest Mode]          │     │                     │
+    │ [Sign Up]             │  ONBOARDING         ONBOARDING
+    │ [Forgot Password] ←───┼─┐  NOT DONE           COMPLETE
+    │                       │ │     │                     │
+    └───────┬───────────────┘ │     ▼                     ▼
+            │                 │ ┌──────────────┐   ┌─────────────┐
+            └─────────────────┼→│ ONBOARDING   │   │  HOME TAB   │
+                              │ │onboarding.tsx│   │ (tabs)/home │
+                              │ │              │   │             │
+                              │ │ Step 1: Goal │   │ [Dashboard] │
+                              │ │ Step 2: Cat. │   │ [Start Btn] │
+                              │ │ Step 3: Voice│   │ [Panda Logo]│
+                              │ │ Step 4: Unit │   └──────┬──────┘
+         ┌────────────────────┘ └──────┬───────┘          │
+         │ Password Reset              │                  │
+         │ Email Sent                  │                  │
+         │                       CHECK AFFIRMATIONS       │
+         └────────────────┐            │                  │
+                          │  ┌─────────┴─────────┐        │
+                          │  │                   │        │
+                          │  NO                 YES       │
+                          │  │                   │        │
+                          │  ▼                   ▼        │
+                          │ ┌──────────────┐  ┌──────────┴──────┐
+                          │ │ AFFIRMATIONS │  │  MAIN APP TABS  │
+                          │ │(tabs)/       │  │  (Bottom Nav)   │
+                          │ │affirmations  │  └──────────────────┘
+                          │ │              │           │
+                          │ │ [Swipe Cards]│           │
+                          └─┤ [Accept/     │◄──────────┤
+                            │  Reject]     │           │
+                            │ [5-10 Select]│           │
+                            └──────┬───────┘           │
+                                   │                   │
+                                   │ SAVE & DONE       │
+                                   │                   │
+                                   ▼                   │
+            ┌──────────────────────────────────────────┴───────────────────┐
+            │                     MAIN APP TABS                            │
+            │                   (Bottom Navigation)                         │
+            └──┬──────┬──────────┬──────────┬──────────┬──────────────────┘
+               │      │          │          │          │
+               ▼      ▼          ▼          ▼          ▼
+         ┌─────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+         │  HOME   │ │AFFIRM. │ │  YOU   │ │SETTINGS│ │LIBRARY │
+         │  TAB    │ │  TAB   │ │  TAB   │ │  TAB   │ │  TAB   │
+         └────┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘
+              │          │          │          │          │
+              │          │          │          │          │
+              ▼          ▼          ▼          ▼          ▼
+    ┌─────────────────┐ │   ┌──────────┐ ┌──────────┐  │
+    │ "Ready to Start"│ │   │ Progress │ │ Interval │  │
+    │     Button      │ │   │   Tab    │ │  Picker  │  │
+    │                 │ │   │          │ │          │  │
+    │ [Sessions Count]│ │   │ Activity │ │ Distance │  │
+    │ [Panda Logo]    │ │   │   Tab    │ │   Unit   │  │
+    └────┬────────────┘ │   └──────────┘ │          │  │
+         │              │                │ [Reset   │  │
+         │ TAP START    │                │  Onboard]│  │
+         │              │                │          │  │
+         ▼              │                │ [Sign Out]  │
+    ┌─────────────────┐ │                └────┬─────┘  │
+    │ SESSION SCREEN  │◄┘                     │        │
+    │  session.tsx    │                       │        │
+    │                 │                       │        │
+    │ [Circular Timer]│                       │        │
+    │ [Affirmation    │                       │        │
+    │  Display]       │                 SIGN OUT       │
+    │ [Time Counter]  │                       │        │
+    │ [Distance Track]│                       ▼        │
+    │ [Hold to Stop]  │                  ┌─────────┐   │
+    └────┬────────────┘                  │ LOGIN   │   │
+         │                               │ SCREEN  │   │
+         │ HOLD STOP                     └─────────┘   │
+         │ (1200ms)                                     │
+         │                                              │
+         ▼                                              │
+    ┌─────────────────┐                                │
+    │ SESSION SUMMARY │                                │
+    │  summary.tsx    │                                │
+    │                 │                                │
+    │ [Time]          │                                │
+    │ [Distance]      │                                │
+    │ [Affirmations]  │                                │
+    │ [Save/Share]    │                                │
+    └────┬────────────┘                                │
+         │                                              │
+         │ DONE                                         │
+         │                                              │
+         ▼                                              │
+    ┌─────────────────┐                                │
+    │  BACK TO HOME   │◄───────────────────────────────┘
+    └─────────────────┘
+
+================================================================================
+## KEY USER FLOWS
+================================================================================
+
+FLOW 1: FIRST-TIME USER
+─────────────────────────
+1. Open App
+2. Login Screen → Choose Guest/Email
+3. Onboarding (4 steps)
+4. Auto-navigate to Affirmations Screen
+5. Select 5-10 affirmations (swipe cards)
+6. Navigate to Home
+7. Tap "Ready to Start"
+8. Active Session (affirmations play at intervals)
+9. Hold to Stop
+10. View Summary
+11. Return to Home
+
+FLOW 2: RETURNING USER (QUICK SESSION)
+────────────────────────────────────────
+1. Open App → Auto-login
+2. Home Screen
+3. Tap "Ready to Start"
+4. Active Session
+5. Hold to Stop
+6. View Summary
+7. Return to Home
+
+FLOW 3: CHANGE AFFIRMATIONS
+─────────────────────────────
+1. Home Screen
+2. Tap "Affirmations" tab
+3. Swipe through cards
+4. Accept/Reject affirmations
+5. Done (5-10 selected)
+6. Return to Home
+
+FLOW 4: ADJUST SETTINGS
+─────────────────────────
+1. Home Screen
+2. Tap "Settings" tab
+3. Toggle Time/Distance intervals
+4. Select interval duration (30s, 60s, etc.) or distance (0.5mi, 1mi, etc.)
+5. Change distance units (miles/km)
+6. Return to Home
+
+FLOW 5: RESET ONBOARDING
+──────────────────────────
+1. Settings Tab
+2. Tap "Reset Onboarding"
+3. Confirm
+4. Navigate back to Onboarding flow
+5. Complete all steps
+6. Navigate to Affirmations (if none selected) or Home
+
+FLOW 6: PASSWORD RESET
+────────────────────────
+1. Login Screen
+2. Tap "Forgot Password?"
+3. Enter email (iOS: Alert.prompt, Android: Modal)
+4. Receive reset email
+5. Open email, click link
+6. Reset password via Firebase
+7. Return to app and login
+
+================================================================================
+## DATA FLOWS
+================================================================================
+
+SESSION DATA FLOW:
+──────────────────
+1. User selects affirmations
+   → storageService.saveSelectedAffirmations()
+   → sessionStore.setSelectedAffirmations()
+
+2. User configures session settings
+   → settings.tsx
+   → storageService.saveSessionSettings()
+   → sessionStore.setSessionSettings()
+
+3. User starts session
+   → session.tsx
+   → sessionStore.startSession()
+   → locationService.startTracking() (if distance-based)
+   → audioService.initialize()
+
+4. Session runs
+   → Timer increments every second
+   → Location updates trigger distance calculation
+   → Interval reached → audioService.playAffirmation()
+   → Affirmation counter increments
+   → sessionStore.updateSessionState()
+
+5. User stops session
+   → sessionStore.endSession()
+   → storageService.saveSessionLog() (SQLite)
+   → locationService.stopTracking()
+   → Navigate to summary.tsx
+
+6. View summary
+   → Display session stats
+   → Option to return home
+
+AUTHENTICATION DATA FLOW:
+──────────────────────────
+1. User enters credentials
+   → login.tsx
+
+2. Submit to Firebase
+   → authStore.signInWithEmail() / signUpWithEmail()
+   → Firebase Auth API
+
+3. Success
+   → authStore.setUser(user)
+   → onAuthStateChanged listener updates store
+   → Navigate to onboarding or home
+
+4. Error
+   → Parse error code
+   → Display user-friendly message
+
+5. Password reset
+   → authStore.resetPassword(email)
+   → Firebase sends reset email
+   → User clicks link in email
+   → Firebase handles reset
+   → User returns to app to login
+
+ONBOARDING DATA FLOW:
+──────────────────────
+1. User completes onboarding steps
+   → onboarding.tsx
+   → onboardingStore.saveOnboarding()
+
+2. Save to storage
+   → storageService.saveOnboarding()
+   → AsyncStorage persists data
+
+3. Check affirmations
+   → sessionStore.selectedAffirmations
+   → storageService.getSelectedAffirmations()
+
+4. Navigate based on affirmation status
+   → No affirmations: /(tabs)/affirmations
+   → Has affirmations: /(tabs)/home
+
+================================================================================
+## RECENT CHANGES (Dec 3, 2025)
+================================================================================
+
+### ✅ Completed
+1. Password Reset - Added Firebase password reset with cross-platform UI
+2. Error Messages - User-friendly login error parsing
+3. Theme Updates - Login screen now matches app colors (removed green)
+4. Onboarding Debug - Comprehensive logging for navigation troubleshooting
+5. Settings Info - Added distance tracking guidance text
+
+### 📝 Known Issues (Resolved)
+- ✅ Same affirmation playing repeatedly - FIXED (race condition with refs)
+- ✅ Affirmation counter not resetting - FIXED (stale closure issue)
+- ✅ Cards covering counter text - FIXED (margin adjustment)
+- ✅ Rejected cards reappearing - FIXED (swipe logic)
+
+================================================================================
+## EXPECTED OUTCOME
+================================================================================
+
+### Short-term Goals (Current Sprint)
+✅ Authentication improvements - COMPLETED
+   - Password reset functionality
+   - Better error messages
+   - Theme consistency
+
+🔄 Map-based session redesign - PLANNED NEXT
+   - Full-screen map with route tracking
+   - Collapsible stats panel (like Strava)
+   - Activity type selector
+   - Smooth animations
+
+### Mid-term Goals
+- Session history and analytics
+- Custom affirmation recording
+- Social sharing features
+- Cloud backup/sync
+
+### Long-term Vision
+- Community affirmation library
+- AI-powered affirmation recommendations
+- Integration with fitness apps (Apple Health, Google Fit)
+- Wearable device support
+- Premium subscription features
+
+### Success Metrics
+- Users complete 3+ sessions per week
+- 80%+ onboarding completion rate
+- <2% crash rate
+- 4.5+ star app store rating
+- Positive user feedback on affirmation effectiveness
+
+================================================================================
+## ENVIRONMENT & CONFIGURATION
+================================================================================
+
+### Required Environment Variables (.env)
+EXPO_PUBLIC_FIREBASE_API_KEY=
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+EXPO_PUBLIC_FIREBASE_APP_ID=
+
+### Permissions Required
+- Location: Foreground location access for distance tracking
+- Audio: Microphone access (future: custom affirmation recording)
+- Network: Internet for Firebase auth & potential cloud sync
+
+### Development Commands
+npm start          # Start development server
+npm run ios        # Run on iOS simulator
+npm run android    # Run on Android emulator
+npm run web        # Run on web
+eas build          # Build for production
+
+================================================================================
+## NEXT MILESTONE
+================================================================================
+
+🎯 MAP-BASED SESSION SCREEN REDESIGN
+──────────────────────────────────────
+Goal: Transform session screen into Strava-like map interface
+
+Features:
+- Full-screen map background (react-native-maps)
+- Real-time route drawing with polyline
+- Collapsible stats panel with animations
+- Activity type selector (bike/run/walk)
+- Smooth expand/minimize panel interactions
+- "Re-center" map button
+- Enhanced location tracking visualization
+
+Status: Ready to begin implementation
+Prerequisites: All dependencies available, design spec complete
+
+================================================================================
+Last Updated: December 3, 2025
+Status: ✅ Auth improvements complete, ready for map redesign
+================================================================================
+
+

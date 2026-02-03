@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
@@ -13,6 +14,7 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuthStore();
   const { data: onboardingData, reset: resetOnboarding } = useOnboardingStore();
   const { sessionSettings, setSessionSettings } = useSessionStore();
+  const insets = useSafeAreaInsets();
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -56,7 +58,16 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 24,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Settings</Text>
         <Text style={styles.subtitle}>Customize your experience</Text>
@@ -74,6 +85,11 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Session Settings</Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
+            💡 Choose how often affirmations play during your session. Distance tracking uses your location and requires permission.
+          </Text>
+        </View>
         <IntervalPicker
           intervalType={sessionSettings?.intervalType || 'time'}
           timeInterval={sessionSettings?.timeInterval || 60}
@@ -198,6 +214,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.accent,
+  },
+  infoBox: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  infoText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
   },
 });
 

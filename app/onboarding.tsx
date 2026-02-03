@@ -15,15 +15,14 @@ import { useOnboardingStore, OnboardingData } from '../store/onboardingStore';
 import { useSessionStore } from '../store/sessionStore';
 import { storageService } from '../services/storageService';
 import { affirmationService } from '../services/affirmationService';
+import { COLORS } from '../constants/colors';
 
 const CATEGORIES = [
   'Overcoming Anxiety',
-  'Depression',
-  'Building Up Confidence',
-  'Building Up Self-Worth',
-  'Reinforcing Confidence and Self-Worth',
-  'Believing in Oneself',
+  'Building Confidence',
   'Self-Love',
+  'Focus & Motivation',
+  'General Wellness',
 ];
 
 export default function OnboardingScreen() {
@@ -66,19 +65,31 @@ export default function OnboardingScreen() {
     }
 
     try {
+      console.log('=== ONBOARDING COMPLETE - NAVIGATION DEBUG ===');
+      console.log('Timestamp:', new Date().toISOString());
+      console.log('Saving onboarding data...');
       await saveOnboarding(data as OnboardingData);
+      console.log('✅ Onboarding data saved');
 
       // Check both sessionStore and storageService for affirmations
+      console.log('Checking for existing affirmations...');
+      console.log('- selectedAffirmations (from store):', selectedAffirmations.length);
+      
       const storedAffirmations = await storageService.getSelectedAffirmations();
+      console.log('- storedAffirmations (from storage):', storedAffirmations.length);
+      
       const hasAffirmations = selectedAffirmations.length > 0 || storedAffirmations.length > 0;
+      console.log('- hasAffirmations:', hasAffirmations);
 
       // Smart navigation based on affirmation selection status
       if (!hasAffirmations) {
-        console.log('No affirmations selected - navigating to affirmations screen');
+        console.log('🔄 No affirmations found - navigating to affirmations screen');
+        console.log('Navigation route: /(tabs)/affirmations');
         router.replace('/(tabs)/affirmations');
 
         // Show helpful guidance message
         setTimeout(() => {
+          console.log('📢 Showing affirmation selection guidance alert');
           Alert.alert(
             'Select Your Affirmations',
             'Choose 5-10 affirmations to begin your journey!',
@@ -86,10 +97,13 @@ export default function OnboardingScreen() {
           );
         }, 500);
       } else {
-        console.log('Affirmations already selected - navigating to home');
+        console.log('✅ Affirmations already selected - navigating to home');
+        console.log('Navigation route: /(tabs)/home');
         router.replace('/(tabs)/home');
       }
+      console.log('=== END NAVIGATION DEBUG ===');
     } catch (error) {
+      console.error('❌ Onboarding completion error:', error);
       Alert.alert('Error', 'Failed to save onboarding data');
     }
   };
@@ -259,7 +273,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   content: {
     // Padding now handled inline with safe area insets
@@ -267,13 +281,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.textSecondary,
     marginBottom: 32,
     textAlign: 'center',
   },
@@ -283,32 +297,32 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 24,
   },
   option: {
     padding: 16,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
     borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: COLORS.background,
   },
   optionSelected: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.primary,
+    backgroundColor: `${COLORS.primary}20`,
   },
   optionText: {
     fontSize: 16,
-    color: '#1A1A1A',
+    color: COLORS.text,
   },
   optionTextSelected: {
-    color: '#4CAF50',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   button: {
     height: 56,
-    backgroundColor: '#4CAF50',
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -317,17 +331,17 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.surface,
   },
   disclaimer: {
     marginTop: 24,
     padding: 16,
-    backgroundColor: '#FFF3E0',
+    backgroundColor: COLORS.background,
     borderRadius: 8,
   },
   disclaimerText: {
     fontSize: 12,
-    color: '#E65100',
+    color: COLORS.accent,
     lineHeight: 18,
   },
 });

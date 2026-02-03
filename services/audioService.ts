@@ -1,20 +1,70 @@
 import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { Affirmation } from '../types/affirmation';
+import { VoicePreset } from '../types/session';
+
+export const VOICE_PRESETS: Record<VoicePreset, { pitch: number; rate: number; description: string }> = {
+  calm: { pitch: 0.9, rate: 0.7, description: 'Slower, lower pitch' },
+  natural: { pitch: 1.0, rate: 0.8, description: 'Standard speaking' },
+  warm: { pitch: 0.85, rate: 0.7, description: 'Deep, slow voice' },
+  gentle: { pitch: 0.95, rate: 0.65, description: 'Very slow, soothing' },
+  energetic: { pitch: 1.05, rate: 0.85, description: 'Slightly upbeat' },
+};
 
 class AudioService {
   private player: AudioPlayer | null = null;
+  private chimePlayer: AudioPlayer | null = null;
   private isPlaying = false;
+  private volume = 0.8; // 0-1
+  private currentPreset: VoicePreset = 'calm';
 
   async initialize() {
     // expo-audio doesn't require explicit initialization like expo-av
     // Audio players are created on-demand
   }
 
-  async playAffirmation(affirmation: Affirmation): Promise<void> {
+  setVolume(volumePercent: number) {
+    // Convert 0-100 to 0-1
+    this.volume = Math.max(0, Math.min(1, volumePercent / 100));
+  }
+
+  setVoicePreset(preset: VoicePreset) {
+    this.currentPreset = preset;
+  }
+
+  getVoicePreset(): VoicePreset {
+    return this.currentPreset;
+  }
+
+  async playChime(): Promise<void> {
+    // Play a simple chime/notification sound before affirmation
+    // Using Speech to say a brief tone indicator since we don't have a chime asset
+    return new Promise((resolve) => {
+      Speech.speak('...', {
+        language: 'en',
+        pitch: 1.5,
+        rate: 2.0,
+        volume: this.volume,
+        onDone: () => resolve(),
+        onStopped: () => resolve(),
+        onError: () => resolve(),
+      });
+      // Short delay for the chime
+      setTimeout(resolve, 300);
+    });
+  }
+
+  async playAffirmation(affirmation: Affirmation, playChime = false): Promise<void> {
     try {
       // Stop any currently playing audio
       await this.stop();
+
+      // Play chime first if enabled
+      if (playChime) {
+        await this.playChime();
+        // Brief pause after chime
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
 
       if (affirmation.isCustom && affirmation.audioUri) {
         // Play recorded audio
@@ -65,12 +115,14 @@ class AudioService {
   }
 
   private async speakText(text: string): Promise<void> {
+    const preset = VOICE_PRESETS[this.currentPreset];
     return new Promise((resolve, reject) => {
       try {
         Speech.speak(text, {
           language: 'en',
-          pitch: 1.0,
-          rate: 0.9,
+          pitch: preset.pitch,
+          rate: preset.rate,
+          volume: this.volume,
           onDone: () => {
             this.isPlaying = false;
             resolve();

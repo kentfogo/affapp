@@ -1,0 +1,34 @@
+{
+  "cli": {
+    "version": ">= 16.32.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
+      },
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "remote"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

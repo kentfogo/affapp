@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
   User,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -16,6 +17,7 @@ interface AuthState {
   signInAnonymously: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -78,6 +80,21 @@ export const useAuthStore = create<AuthState>((set) => {
       try {
         set({ isLoading: true, error: null });
         await createUserWithEmailAndPassword(auth, email, password);
+      } catch (error: any) {
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
+    },
+    resetPassword: async (email: string) => {
+      if (!auth) {
+        const error = new Error('Firebase Auth is not initialized');
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
+      try {
+        set({ isLoading: true, error: null });
+        await sendPasswordResetEmail(auth, email);
+        set({ isLoading: false });
       } catch (error: any) {
         set({ error: error.message, isLoading: false });
         throw error;

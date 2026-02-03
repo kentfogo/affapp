@@ -27,7 +27,8 @@ export default function SummaryScreen() {
   const duration = parseInt(params.duration as string) || 0;
   const distance = parseFloat(params.distance as string) || 0;
   const affirmationsCount = parseInt(params.affirmationsCount as string) || 0;
-  
+  const moodImprovement = params.moodImprovement ? parseInt(params.moodImprovement as string) : null;
+
   const [totalSessions, setTotalSessions] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
 
@@ -143,6 +144,18 @@ export default function SummaryScreen() {
             <Text style={styles.statValue}>{affirmationsCount}</Text>
             <Text style={styles.statLabel}>Affirmations Heard</Text>
           </View>
+          {moodImprovement !== null && (
+            <View style={styles.statCard}>
+              <Text style={[
+                styles.statValue,
+                moodImprovement > 0 && styles.moodPositive,
+                moodImprovement < 0 && styles.moodNegative,
+              ]}>
+                {moodImprovement > 0 ? '+' : ''}{moodImprovement}
+              </Text>
+              <Text style={styles.statLabel}>Mood Change</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.encouragement}>
@@ -175,6 +188,7 @@ const styles = StyleSheet.create({
   redPandaImage: {
     width: 120,
     height: 120,
+    marginTop: 40,
     marginBottom: 24,
   },
   header: {
@@ -245,6 +259,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  moodPositive: {
+    color: '#4CAF50',
+  },
+  moodNegative: {
+    color: '#F44336',
   },
   encouragement: {
     backgroundColor: `${COLORS.primary}20`,

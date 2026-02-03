@@ -1,16 +1,26 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/colors';
 import ProgressScreen from './progress';
 import ActivitiesScreen from './activities';
 
 export default function YouScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'progress' | 'activities'>('progress');
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
       {/* Custom Tab Switcher */}
       <View style={styles.tabSwitcher}>
         <TouchableOpacity
@@ -88,6 +98,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
 
 
 

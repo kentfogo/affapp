@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx expo start -c)",
+      "Bash(ping:*)",
+      "Bash(powershell -Command \"Get-Process -Id \\(Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue\\).OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(curl:*)",
+      "WebFetch(domain:www.notion.so)",
+      "Bash(npx expo install:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(npx expo run:ios)",
+      "Bash(npx eas:*)",
+      "Bash(eas init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(adb devices:*)",
+      "Bash(\"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe\" devices)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" npx expo run:android:*)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ANDROID_HOME=\"$LOCALAPPDATA/Android/Sdk\" npx expo run:android:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(npx expo start:*)",
+      "Bash(\"%LOCALAPPDATA%\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" reverse tcp:8081 tcp:8081)",
+      "Bash(cmd /c \"%LOCALAPPDATA%\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" reverse tcp:8081 tcp:8081)",
+      "Bash(cmd /c \"%LOCALAPPDATA%\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" devices)",
+      "Bash(cmd /c \"echo %LOCALAPPDATA%\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe devices\")",
+      "Bash(cmd /c \"\"\"%LOCALAPPDATA%\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"\" devices\")"
+    ]
+  }
+}

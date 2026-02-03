@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { IntervalType, DistanceUnit } from '../types/session';
+import { COLORS } from '../constants/colors';
 
 interface IntervalPickerProps {
   intervalType: IntervalType;
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text,
     marginBottom: 12,
   },
   typeSelector: {
@@ -180,20 +181,20 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
   },
   typeButtonActive: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.background,
   },
   typeButtonText: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.textSecondary,
   },
   typeButtonTextActive: {
-    color: '#4CAF50',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   presets: {
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   },
   presetLabel: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.textSecondary,
     marginBottom: 12,
   },
   distanceHeader: {
@@ -219,19 +220,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   unitButtonActive: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.background,
   },
   unitButtonText: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.textSecondary,
   },
   unitButtonTextActive: {
-    color: '#4CAF50',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   presetGrid: {
@@ -244,19 +245,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   presetButtonActive: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.background,
   },
   presetButtonText: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.textSecondary,
   },
   presetButtonTextActive: {
-    color: '#4CAF50',
+    color: COLORS.primary,
     fontWeight: '600',
   },
 });

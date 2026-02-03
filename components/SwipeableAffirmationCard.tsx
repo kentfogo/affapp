@@ -1,280 +1,221 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   Animated,
   PanResponder,
-  GestureResponderEvent,
-  PanResponderGestureState,
+  Dimensions,
   Platform,
-  TouchableOpacity,
 } from 'react-native';
-import { COLORS, SHADOW } from '../constants/colors';
+import * as Haptics from 'expo-haptics';
+import { COLORS } from '../constants/colors';
 
-interface SwipeableCardProps {
+const SCREEN_WIDTH = Dimensions.get('window').width;
+// Slightly lower threshold so a natural swipe registers more reliably
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.2;
+const SWIPE_OUT_DURATION = 250;
+
+interface SwipeableAffirmationCardProps {
   affirmation: {
     id: string;
     text: string;
     category: string;
   };
-  onSwipeRight: () => void; // Accept
-  onSwipeLeft: () => void;  // Reject
-  isLast?: boolean;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
+  isFirst: boolean;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
-
-export default function SwipeableAffirmationCard({
+export const SwipeableAffirmationCard: React.FC<SwipeableAffirmationCardProps> = ({
   affirmation,
-  onSwipeRight,
   onSwipeLeft,
-  isLast,
-}: SwipeableCardProps) {
-  const pan = useRef(new Animated.ValueXY()).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  onSwipeRight,
+  isFirst,
+}) => {
+  const position = useRef(new Animated.ValueXY()).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // More sensitive on web - trigger on any movement
-        return Platform.OS === 'web' 
-          ? Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5
-          : Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderGrant: () => {
-        // Set initial position on web for better tracking
-        if (Platform.OS === 'web') {
-          pan.setOffset({ x: 0, y: 0 });
-        }
-      },
-      onPanResponderMove: (
-        event: GestureResponderEvent,
-        gestureState: PanResponderGestureState
-      ) => {
-        if (Platform.OS === 'web') {
-          // Direct value setting for web
-          pan.x.setValue(gestureState.dx);
-          pan.y.setValue(gestureState.dy);
-        } else {
-          Animated.event(
-            [null, { dx: pan.x, dy: pan.y }],
-            { useNativeDriver: false }
-          )(event, gestureState);
-        }
-      },
-      onPanResponderRelease: (
-        event: GestureResponderEvent,
-        gestureState: PanResponderGestureState
-      ) => {
-        if (Platform.OS === 'web') {
-          pan.flattenOffset();
-        }
+      onStartShouldSetPanResponder: () => isFirst,
+      onPanResponderMove: (_, gesture) => {
+        position.setValue({ x: gesture.dx, y: gesture.dy });
         
-        if (gestureState.dx > SWIPE_THRESHOLD) {
+        // Calculate rotation based on horizontal movement
+        const rotateValue = gesture.dx / SCREEN_WIDTH / 2;
+        rotate.setValue(rotateValue);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dx > SWIPE_THRESHOLD) {
           // Swipe right - accept
-          Animated.timing(pan.x, {
-            toValue: SCREEN_WIDTH * 1.5,
-            duration: 300,
-            useNativeDriver: false,
-          }).start(() => {
-            resetCard();
-            onSwipeRight();
-          });
-        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+          forceSwipe('right');
+        } else if (gesture.dx < -SWIPE_THRESHOLD) {
           // Swipe left - reject
-          Animated.timing(pan.x, {
-            toValue: -SCREEN_WIDTH * 1.5,
-            duration: 300,
-            useNativeDriver: false,
-          }).start(() => {
-            resetCard();
-            onSwipeLeft();
-          });
+          forceSwipe('left');
         } else {
-          // Return to center
-          Animated.spring(pan, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: false,
-          }).start();
+          // Return to original position
+          resetPosition();
         }
       },
     })
   ).current;
 
-  const handleAccept = () => {
-    Animated.timing(pan.x, {
-      toValue: SCREEN_WIDTH * 1.5,
-      duration: 300,
-      useNativeDriver: false,
-    }).start(() => {
-      resetCard();
-      onSwipeRight();
+  const forceSwipe = (direction: 'left' | 'right') => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    const x = direction === 'right' ? SCREEN_WIDTH + 100 : -SCREEN_WIDTH - 100;
+    
+    Animated.parallel([
+      Animated.timing(position, {
+        toValue: { x, y: 0 },
+        duration: SWIPE_OUT_DURATION,
+        useNativeDriver: false,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: SWIPE_OUT_DURATION,
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
+      // Reset for next card
+      position.setValue({ x: 0, y: 0 });
+      rotate.setValue(0);
+      opacity.setValue(1);
+      
+      // Call appropriate callback
+      if (direction === 'right') {
+        onSwipeRight();
+      } else {
+        onSwipeLeft();
+      }
     });
   };
 
-  const handleReject = () => {
-    Animated.timing(pan.x, {
-      toValue: -SCREEN_WIDTH * 1.5,
-      duration: 300,
+  const resetPosition = () => {
+    Animated.spring(position, {
+      toValue: { x: 0, y: 0 },
       useNativeDriver: false,
-    }).start(() => {
-      resetCard();
-      onSwipeLeft();
-    });
+      friction: 4,
+    }).start();
+    
+    Animated.spring(rotate, {
+      toValue: 0,
+      useNativeDriver: false,
+      friction: 4,
+    }).start();
   };
 
-  const resetCard = () => {
-    pan.x.setValue(0);
-    pan.y.setValue(0);
-    scaleAnim.setValue(1);
+  const rotateInterpolate = rotate.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: ['-30deg', '0deg', '30deg'],
+  });
+
+  const animatedCardStyle = {
+    transform: [
+      { translateX: position.x },
+      { translateY: position.y },
+      { rotate: rotateInterpolate },
+    ],
+    opacity,
   };
 
-  const rotate = pan.x.interpolate({
-    inputRange: [-SCREEN_WIDTH * 0.5, 0, SCREEN_WIDTH * 0.5],
-    outputRange: ['-10deg', '0deg', '10deg'],
+  const likeOpacity = position.x.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD],
+    outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
-  const opacity = pan.x.interpolate({
-    inputRange: [-SCREEN_WIDTH * 0.5, 0, SCREEN_WIDTH * 0.5],
-    outputRange: [0.5, 1, 0.5],
+  const nopeOpacity = position.x.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, 0],
+    outputRange: [1, 0],
     extrapolate: 'clamp',
   });
 
   return (
     <Animated.View
-      style={[
-        styles.cardContainer,
-        {
-          transform: [
-            { translateX: pan.x },
-            { translateY: pan.y },
-            { rotate },
-            { scale: scaleAnim },
-          ],
-          opacity,
-        },
-      ]}
-      {...panResponder.panHandlers}
+      style={[styles.card, animatedCardStyle, !isFirst && styles.cardBehind]}
+      {...(isFirst ? panResponder.panHandlers : {})}
     >
-      <View style={styles.card}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{affirmation.category}</Text>
-        </View>
+      {/* Like stamp */}
+      <Animated.View style={[styles.stamp, styles.stampLike, { opacity: likeOpacity }]}>
+        <Text style={styles.stampText}>ACCEPT</Text>
+      </Animated.View>
 
-        <View style={styles.content}>
-          <Text style={styles.affirmationText}>{affirmation.text}</Text>
-        </View>
+      {/* Nope stamp */}
+      <Animated.View style={[styles.stamp, styles.stampNope, { opacity: nopeOpacity }]}>
+        <Text style={styles.stampText}>REJECT</Text>
+      </Animated.View>
 
-        <View style={styles.actionHint}>
-          {Platform.OS === 'web' ? (
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.rejectButton]}
-                onPress={handleReject}
-              >
-                <Text style={styles.buttonText}>Reject</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.acceptButton]}
-                onPress={handleAccept}
-              >
-                <Text style={styles.buttonText}>Accept</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.swipeLeftText}>← Reject</Text>
-              <Text style={styles.swipeRightText}>Accept →</Text>
-            </>
-          )}
-        </View>
+      {/* Card content */}
+      <View style={styles.content}>
+        <Text style={styles.affirmationText}>"{affirmation.text}"</Text>
+        <Text style={styles.categoryText}>{affirmation.category}</Text>
       </View>
     </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    width: SCREEN_WIDTH - 48,
-    height: 400,
-  },
   card: {
-    flex: 1,
-    backgroundColor: '#1F1F1F',
+    position: 'absolute',
+    width: SCREEN_WIDTH - 40,
+    height: 500,
+    backgroundColor: COLORS.surface,
     borderRadius: 20,
-    padding: 24,
-    justifyContent: 'space-between',
-    ...SHADOW.medium,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: `${COLORS.primary}20`,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary,
+  cardBehind: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
   content: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   affirmationText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.text,
     textAlign: 'center',
-    lineHeight: 32,
+    lineHeight: 36,
+    marginBottom: 20,
   },
-  actionHint: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  categoryText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  swipeLeftText: {
-    fontSize: 12,
-    color: '#FF6B6B',
-    fontWeight: '600',
+  stamp: {
+    position: 'absolute',
+    top: 50,
+    borderWidth: 4,
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    transform: [{ rotate: '-20deg' }],
   },
-  swipeRightText: {
-    fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '600',
+  stampLike: {
+    right: 40,
+    borderColor: '#4CAF50',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+  stampNope: {
+    left: 40,
+    borderColor: '#F44336',
+    transform: [{ rotate: '20deg' }],
   },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rejectButton: {
-    backgroundColor: '#FF6B6B',
-    marginRight: 8,
-  },
-  acceptButton: {
-    backgroundColor: '#4CAF50',
-    marginLeft: 8,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  stampText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: COLORS.text,
   },
 });
-
-

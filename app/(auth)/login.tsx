@@ -8,17 +8,45 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
+import { COLORS } from '../../constants/colors';
+
+// Helper function to parse Firebase auth errors into user-friendly messages
+const getAuthErrorMessage = (errorCode: string): string => {
+  switch (errorCode) {
+    case 'auth/wrong-password':
+      return 'Incorrect password. Please try again.';
+    case 'auth/user-not-found':
+      return 'No account found with this email.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/invalid-credential':
+      return 'Invalid email or password.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Check your connection.';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters.';
+    default:
+      return 'Login failed. Please try again.';
+  }
+};
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signInAnonymously, signInWithEmail, signUpWithEmail } = useAuthStore();
+  const { signInAnonymously, signInWithEmail, signUpWithEmail, resetPassword } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   const handleGuestLogin = async () => {
     try {
@@ -26,7 +54,8 @@ export default function LoginScreen() {
       await signInAnonymously();
       router.replace('/onboarding');
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      const errorMessage = getAuthErrorMessage(error.code);
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +76,74 @@ export default function LoginScreen() {
       }
       router.replace('/onboarding');
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      const errorMessage = getAuthErrorMessage(error.code);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    if (Platform.OS === 'ios') {
+      // iOS: Use Alert.prompt
+      Alert.prompt(
+        'Reset Password',
+        'Enter your email address to receive a password reset link',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Send',
+            onPress: async (inputEmail) => {
+              if (!inputEmail || !inputEmail.trim()) {
+                Alert.alert('Error', 'Please enter your email address');
+                return;
+              }
+              try {
+                setIsLoading(true);
+                await resetPassword(inputEmail.trim());
+                Alert.alert(
+                  'Success',
+                  'Password reset email sent! Check your inbox.'
+                );
+              } catch (error: any) {
+                const errorMessage = getAuthErrorMessage(error.code);
+                Alert.alert('Error', errorMessage);
+              } finally {
+                setIsLoading(false);
+              }
+            },
+          },
+        ],
+        'plain-text',
+        email
+      );
+    } else {
+      // Android: Show custom modal
+      setResetEmail(email);
+      setShowResetModal(true);
+    }
+  };
+
+  const handleResetPasswordSubmit = async () => {
+    if (!resetEmail || !resetEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setShowResetModal(false);
+      await resetPassword(resetEmail.trim());
+      Alert.alert(
+        'Success',
+        'Password reset email sent! Check your inbox.'
+      );
+      setResetEmail('');
+    } catch (error: any) {
+      const errorMessage = getAuthErrorMessage(error.code);
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +178,16 @@ export default function LoginScreen() {
             autoCapitalize="none"
             editable={!isLoading}
           />
+
+          {!isSignUp && (
+            <TouchableOpacity
+              onPress={handleForgotPassword}
+              disabled={isLoading}
+              style={styles.forgotPasswordLink}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={[styles.button, styles.primaryButton]}
@@ -119,6 +225,49 @@ export default function LoginScreen() {
           <Text style={styles.buttonText}>Continue as Guest</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Android Password Reset Modal */}
+      <Modal
+        visible={showResetModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowResetModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reset Password</Text>
+            <Text style={styles.modalSubtitle}>
+              Enter your email address to receive a password reset link
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Email"
+              value={resetEmail}
+              onChangeText={setResetEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => {
+                  setShowResetModal(false);
+                  setResetEmail('');
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalSendButton]}
+                onPress={handleResetPasswordSubmit}
+              >
+                <Text style={styles.modalSendText}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -126,7 +275,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   content: {
     flex: 1,
@@ -136,13 +285,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: COLORS.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 48,
   },
@@ -152,12 +301,22 @@ const styles = StyleSheet.create({
   input: {
     height: 56,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: COLORS.background,
+  },
+  forgotPasswordLink: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    textAlign: 'right',
   },
   button: {
     height: 56,
@@ -167,21 +326,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   primaryButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: COLORS.primary,
   },
   guestButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.surface,
   },
   linkText: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: COLORS.primary,
     textAlign: 'center',
   },
   divider: {
@@ -192,12 +351,76 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.border,
   },
   dividerText: {
     marginHorizontal: 16,
     fontSize: 14,
-    color: '#999999',
+    color: COLORS.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 20,
+  },
+  modalInput: {
+    height: 56,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    marginBottom: 20,
+    backgroundColor: COLORS.background,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalSendButton: {
+    backgroundColor: COLORS.primary,
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  modalSendText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.surface,
   },
 });
 
