@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabButtonActive: {
-    borderBottomColor: COLORS.accent,
+    borderBottomColor: COLORS.primary,
   },
   tabButtonText: {
     fontSize: 16,

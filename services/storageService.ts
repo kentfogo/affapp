@@ -6,6 +6,7 @@ import { Affirmation } from '../types/affirmation';
 const SELECTED_AFFIRMATIONS_KEY = '@selected_affirmations';
 const SESSION_SETTINGS_KEY = '@session_settings';
 const SESSION_LOGS_KEY = '@session_logs';
+const CUSTOM_AFFIRMATIONS_KEY = '@custom_affirmations';
 
 // Conditionally import SQLite only for native platforms to avoid WASM bundling issues on web
 let SQLite: typeof import('expo-sqlite') | null = null;
@@ -65,6 +66,29 @@ class StorageService {
       return data ? JSON.parse(data) : [];
     } catch (error) {
       console.error('Error loading affirmations:', error);
+      return [];
+    }
+  }
+
+  // Custom Affirmations
+  async saveCustomAffirmations(affirmations: Affirmation[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        CUSTOM_AFFIRMATIONS_KEY,
+        JSON.stringify(affirmations)
+      );
+    } catch (error) {
+      console.error('Error saving custom affirmations:', error);
+      throw error;
+    }
+  }
+
+  async getCustomAffirmations(): Promise<Affirmation[]> {
+    try {
+      const data = await AsyncStorage.getItem(CUSTOM_AFFIRMATIONS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading custom affirmations:', error);
       return [];
     }
   }

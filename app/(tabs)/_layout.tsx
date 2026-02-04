@@ -37,7 +37,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="affirmations"
         options={{
-          title: 'Library',
+          title: 'Mantras',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "book" : "book-outline"} size={22} color={color} />
           ),

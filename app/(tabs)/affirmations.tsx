@@ -240,7 +240,7 @@ export default function AffirmationsScreen() {
     <View style={styles.container}>
       {/* Fixed Header */}
       <View style={[styles.navHeader, { paddingTop: insets.top + 10 }]}>
-        <Text style={styles.navTitle}>Library</Text>
+        <Text style={styles.navTitle}>Mantras</Text>
         <View style={styles.navIcons}>
           <TouchableOpacity style={styles.navIconButton}>
             <Ionicons name="search-outline" size={24} color={COLORS.text} />

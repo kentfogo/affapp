@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -16,17 +16,55 @@ export default function ListScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newAffirmationText, setNewAffirmationText] = useState('');
+  const [customAffirmations, setCustomAffirmations] = useState<Affirmation[]>([]);
 
   useEffect(() => {
-    const allAffirmations = affirmationService.getAllAffirmations();
-    const allCategories = affirmationService.getAllCategories().map(c => c.name);
-    setAffirmations(allAffirmations);
-    setCategories(allCategories);
+    const loadData = async () => {
+      const allAffirmations = affirmationService.getAllAffirmations();
+      const allCategories = affirmationService.getAllCategories().map(c => c.name);
 
-    // Load currently selected affirmations
-    const currentSelectedIds = new Set(selectedAffirmations.map(a => a.id));
-    setSelectedIds(currentSelectedIds);
+      // Load custom affirmations from storage
+      const savedCustom = await storageService.getCustomAffirmations();
+      setCustomAffirmations(savedCustom);
+
+      // Combine standard and custom affirmations
+      setAffirmations([...savedCustom, ...allAffirmations]);
+      setCategories(['Custom', ...allCategories]);
+
+      // Load currently selected affirmations
+      const currentSelectedIds = new Set(selectedAffirmations.map(a => a.id));
+      setSelectedIds(currentSelectedIds);
+    };
+    loadData();
   }, [selectedAffirmations]);
+
+  const handleAddAffirmation = async () => {
+    if (!newAffirmationText.trim()) {
+      Alert.alert('Error', 'Please enter an affirmation');
+      return;
+    }
+
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    const newAffirmation: Affirmation = {
+      id: `custom_${Date.now()}`,
+      text: newAffirmationText.trim(),
+      category: 'Custom',
+      isCustom: true,
+    };
+
+    const updatedCustom = [...customAffirmations, newAffirmation];
+    setCustomAffirmations(updatedCustom);
+    setAffirmations([...updatedCustom, ...affirmationService.getAllAffirmations()]);
+
+    // Save to storage
+    await storageService.saveCustomAffirmations(updatedCustom);
+
+    setNewAffirmationText('');
+    setShowAddModal(false);
+  };
 
   const toggleAffirmation = async (affirmation: Affirmation) => {
     await Haptics.selectionAsync();
@@ -108,11 +146,62 @@ export default function ListScreen() {
     <View style={styles.container}>
       {/* Fixed Header */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={styles.headerTitle}>List</Text>
-        <Text style={styles.headerSubtitle}>
-          {selectedIds.size}/10 selected
-        </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>List</Text>
+            <Text style={styles.headerSubtitle}>
+              {selectedIds.size}/10 selected
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowAddModal(true)}
+          >
+            <Ionicons name="add" size={28} color={COLORS.surface} />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Add Affirmation Modal */}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <Text style={styles.modalCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Add Affirmation</Text>
+            <TouchableOpacity onPress={handleAddAffirmation}>
+              <Text style={styles.modalSave}>Save</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalLabel}>Your Affirmation</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="I am capable of achieving my goals..."
+              placeholderTextColor={COLORS.textSecondary}
+              value={newAffirmationText}
+              onChangeText={setNewAffirmationText}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Message when 10 selected */}
+      {selectedIds.size >= 10 && (
+        <View style={styles.successBanner}>
+          <Ionicons name="checkmark-circle" size={24} color={COLORS.surface} />
+          <Text style={styles.successText}>Good Job! You've Selected All of your Affirmations.</Text>
+        </View>
+      )}
 
       {/* Category Filter */}
       <View style={styles.filterContainer}>
@@ -146,18 +235,93 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: COLORS.text,
-    textAlign: 'center',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
     color: COLORS.primary,
-    textAlign: 'center',
     fontWeight: '600',
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  modalSave: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  modalContent: {
+    padding: 24,
+  },
+  modalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  textInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: COLORS.text,
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#43A047',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  successText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.surface,
   },
   filterContainer: {
     backgroundColor: COLORS.surface,

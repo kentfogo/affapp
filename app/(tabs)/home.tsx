@@ -232,10 +232,10 @@ const styles = StyleSheet.create({
   backgroundImageStyle: {
     opacity: 0.06,
     position: 'absolute',
-    top: '-10%',
-    left: '-25%',
-    width: '150%',
-    height: '120%',
+    top: '-50%',
+    left: '-100%',
+    width: '450%',
+    height: '360%',
   },
   navHeader: {
     alignItems: 'center',
