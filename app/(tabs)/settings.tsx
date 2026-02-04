@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useSessionStore } from '../../store/sessionStore';
@@ -58,20 +59,29 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.content,
-        {
-          paddingTop: insets.top + 20,
-          paddingBottom: insets.bottom + 24,
-        },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
-        <Text style={styles.subtitle}>Customize your experience</Text>
+    <View style={styles.container}>
+      {/* Fixed Header */}
+      <View style={[styles.navHeader, { paddingTop: insets.top + 10 }]}>
+        <Text style={styles.navTitle}>Settings</Text>
+        <View style={styles.navIcons}>
+          <TouchableOpacity style={styles.navIconButton}>
+            <Ionicons name="help-circle-outline" size={24} color={COLORS.text} />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: insets.bottom + 24,
+          },
+        ]}
+      >
+        <View style={styles.header}>
+          <Text style={styles.subtitle}>Customize your experience</Text>
+        </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
@@ -142,7 +152,8 @@ export default function SettingsScreen() {
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -151,17 +162,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
+  navHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  navTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  navIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  navIconButton: {
+    padding: 8,
+  },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     padding: 24,
   },
   header: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 24,
   },
   subtitle: {
     fontSize: 16,

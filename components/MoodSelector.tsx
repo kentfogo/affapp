@@ -9,21 +9,13 @@ interface MoodSelectorProps {
   title: string;
 }
 
-const MOOD_EMOJIS: Record<MoodRating, string> = {
-  1: '😞',
-  2: '😕',
-  3: '😐',
-  4: '😊',
-  5: '😄',
-};
-
-const MOOD_LABELS: Record<MoodRating, string> = {
-  1: 'Not great',
-  2: 'Okay',
-  3: 'Neutral',
-  4: 'Good',
-  5: 'Great',
-};
+// Updated to 4 options: Not Great (1), Okay (2), Good (3), Great (4)
+const MOOD_OPTIONS: { rating: MoodRating; emoji: string; label: string }[] = [
+  { rating: 1, emoji: '😞', label: 'Not Great' },
+  { rating: 2, emoji: '😐', label: 'Okay' },
+  { rating: 3, emoji: '😊', label: 'Good' },
+  { rating: 4, emoji: '😄', label: 'Great' },
+];
 
 export default function MoodSelector({ onSelect, selectedRating, title }: MoodSelectorProps) {
   const handleSelect = async (rating: MoodRating) => {
@@ -33,25 +25,25 @@ export default function MoodSelector({ onSelect, selectedRating, title }: MoodSe
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      {title ? <Text style={styles.title}>{title}</Text> : null}
       <View style={styles.moodContainer}>
-        {(Object.keys(MOOD_EMOJIS) as unknown as MoodRating[]).map((rating) => (
+        {MOOD_OPTIONS.map((option) => (
           <TouchableOpacity
-            key={rating}
+            key={option.rating}
             style={[
               styles.moodButton,
-              selectedRating === rating && styles.moodButtonSelected,
+              selectedRating === option.rating && styles.moodButtonSelected,
             ]}
-            onPress={() => handleSelect(rating)}
+            onPress={() => handleSelect(option.rating)}
           >
-            <Text style={styles.emoji}>{MOOD_EMOJIS[rating]}</Text>
+            <Text style={styles.emoji}>{option.emoji}</Text>
             <Text
               style={[
                 styles.label,
-                selectedRating === rating && styles.labelSelected,
+                selectedRating === option.rating && styles.labelSelected,
               ]}
             >
-              {MOOD_LABELS[rating]}
+              {option.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -62,7 +54,7 @@ export default function MoodSelector({ onSelect, selectedRating, title }: MoodSe
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   title: {
@@ -72,14 +64,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   moodContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: 'column',
+    alignItems: 'center',
     width: '100%',
     gap: 12,
   },
   moodButton: {
-    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    width: '80%',
     padding: 16,
     borderRadius: 12,
     backgroundColor: COLORS.background,
@@ -92,11 +85,11 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 32,
-    marginBottom: 8,
+    marginRight: 16,
   },
   label: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    fontSize: 18,
+    color: COLORS.text,
     fontWeight: '500',
   },
   labelSelected: {
@@ -104,9 +97,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-
-
-
-
-

@@ -4,11 +4,11 @@ import { Affirmation } from '../types/affirmation';
 import { VoicePreset } from '../types/session';
 
 export const VOICE_PRESETS: Record<VoicePreset, { pitch: number; rate: number; description: string }> = {
-  calm: { pitch: 0.9, rate: 0.7, description: 'Slower, lower pitch' },
-  natural: { pitch: 1.0, rate: 0.8, description: 'Standard speaking' },
-  warm: { pitch: 0.85, rate: 0.7, description: 'Deep, slow voice' },
-  gentle: { pitch: 0.95, rate: 0.65, description: 'Very slow, soothing' },
-  energetic: { pitch: 1.05, rate: 0.85, description: 'Slightly upbeat' },
+  calm: { pitch: 0.85, rate: 0.55, description: 'Slower, lower pitch' },
+  natural: { pitch: 1.0, rate: 0.7, description: 'Standard speaking' },
+  warm: { pitch: 0.75, rate: 0.5, description: 'Deep, slow, soothing' },
+  gentle: { pitch: 0.9, rate: 0.45, description: 'Very slow, soft' },
+  energetic: { pitch: 1.1, rate: 0.8, description: 'Slightly upbeat' },
 };
 
 class AudioService {

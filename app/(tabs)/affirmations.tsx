@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useSessionStore } from '../../store/sessionStore';
@@ -236,14 +237,24 @@ export default function AffirmationsScreen() {
   const progressPercent = ((currentIndex + 1) / filteredAffirmations.length) * 100;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+    <View style={styles.container}>
+      {/* Fixed Header */}
+      <View style={[styles.navHeader, { paddingTop: insets.top + 10 }]}>
+        <Text style={styles.navTitle}>Library</Text>
+        <View style={styles.navIcons}>
+          <TouchableOpacity style={styles.navIconButton}>
+            <Ionicons name="search-outline" size={24} color={COLORS.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navIconButton}>
+            <Ionicons name="options-outline" size={24} color={COLORS.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Subtitle Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.closeButton}>✕</Text>
-        </TouchableOpacity>
         <Text style={styles.title}>Select Affirmations</Text>
-        <View style={{ width: 30 }} />
+        <Text style={styles.subtitle}>Swipe to choose your daily mantras</Text>
       </View>
 
       {/* Progress Bar */}
@@ -348,26 +359,50 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
+  navHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 12,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  closeButton: {
-    fontSize: 24,
+  navTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
     color: COLORS.text,
-    fontWeight: '600',
+  },
+  navIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  navIconButton: {
+    padding: 8,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+    backgroundColor: COLORS.surface,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     color: COLORS.text,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
   },
   progressContainer: {
     paddingHorizontal: 24,
-    marginBottom: 20,
+    paddingTop: 16,
+    marginBottom: 16,
   },
   progressBar: {
     height: 4,
@@ -391,10 +426,10 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 24,
-    marginTop: 24,
+    paddingTop: 20,
   },
   completedContainer: {
     padding: 40,

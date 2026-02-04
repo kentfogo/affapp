@@ -4,12 +4,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   Animated,
   Image,
+  ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSessionStore } from '../../store/sessionStore';
@@ -60,7 +61,7 @@ export default function HomeScreen() {
           setShowQuote(true);
           // Mark as seen
           await AsyncStorage.setItem(HAS_SEEN_QUOTE_KEY, 'true');
-          
+
           // Fade out quote after 2 seconds
           const timer = setTimeout(() => {
             Animated.timing(fadeAnim, {
@@ -87,7 +88,7 @@ export default function HomeScreen() {
   };
 
   const handleStartSession = async () => {
-    await Haptics.selectionAsync();
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowSettingsModal(true);
   };
 
@@ -123,14 +124,13 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       {showQuote && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.quoteOverlay,
             { opacity: fadeAnim }
           ]}
         >
           <View style={styles.quoteContent}>
-            {/* Red Panda Image */}
             <Image
               source={require('../../assets/red-panda.png')}
               style={styles.redPandaImage}
@@ -141,57 +141,67 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
       )}
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: insets.top + 60,
-            paddingBottom: insets.bottom + 24,
-          }
-        ]}
+
+      {/* Background Image with Fade */}
+      <ImageBackground
+        source={require('../../assets/red-panda.png')}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
+        resizeMode="contain"
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Today's Journey</Text>
-          <Text style={styles.subtitle}>Keep moving, keep growing</Text>
+        {/* Header - lowered */}
+        <View style={[styles.navHeader, { paddingTop: insets.top + 40 }]}>
+          <Text style={styles.navTitle}>Practice</Text>
         </View>
 
-        <View style={styles.centeredContent}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Ready to Start?</Text>
-            <Text style={styles.cardText}>
-              {selectedAffirmations.length === 0
-                ? 'Select 1-10 affirmations to begin'
-                : `You have ${selectedAffirmations.length} affirmations selected`}
-            </Text>
-
-            {!canStartSession && (
-              <TouchableOpacity
-                style={[styles.button, styles.secondaryButton]}
-                onPress={handleSelectAffirmations}
-              >
-                <Text style={styles.secondaryButtonText}>
-                  {selectedAffirmations.length === 0
-                    ? 'Choose Affirmations'
-                    : 'Manage Affirmations'}
-                </Text>
-              </TouchableOpacity>
+        {/* Centered Content */}
+        <View style={styles.mainContent}>
+          {/* Session Info */}
+          <View style={styles.sessionInfo}>
+            {selectedAffirmations.length === 0 ? (
+              <>
+                <Text style={styles.sessionLabelEmpty}>No affirmations selected</Text>
+                <TouchableOpacity onPress={handleSelectAffirmations}>
+                  <Text style={styles.selectLink}>Select affirmations</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.sessionLabelReady}>
+                {selectedAffirmations.length} affirmation{selectedAffirmations.length !== 1 ? 's' : ''} ready
+              </Text>
             )}
+          </View>
+
+          {/* Big START Button */}
+          <View style={styles.startButtonContainer}>
+            <TouchableOpacity style={styles.settingsButton}>
+              <Ionicons name="settings-outline" size={28} color={COLORS.text} />
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[
-                styles.button,
-                styles.primaryButton,
-                !canStartSession && styles.buttonDisabled,
+                styles.startButton,
+                !canStartSession && styles.startButtonDisabled,
               ]}
               onPress={handleStartSession}
               disabled={!canStartSession}
+              activeOpacity={0.8}
             >
-              <Text style={styles.buttonText}>Let's Go!</Text>
+              <Text style={[
+                styles.startButtonText,
+                !canStartSession && styles.startButtonTextDisabled,
+              ]}>START</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.libraryButton}
+              onPress={handleSelectAffirmations}
+            >
+              <Ionicons name="book-outline" size={28} color={COLORS.text} />
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+      </ImageBackground>
 
       <SessionSettingsModal
         visible={showSettingsModal}
@@ -216,18 +226,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
   },
-  scrollView: {
+  backgroundImage: {
     flex: 1,
   },
-  content: {
-    paddingHorizontal: 24,
-    flexGrow: 1,
+  backgroundImageStyle: {
+    opacity: 0.06,
+    position: 'absolute',
+    top: '-10%',
+    left: '-25%',
+    width: '150%',
+    height: '120%',
   },
-  centeredContent: {
-    flex: 1,
-    justifyContent: 'center',
+  navHeader: {
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  navTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
   },
   quoteOverlay: {
     position: 'absolute',
@@ -235,7 +254,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#1F1F1F',
+    backgroundColor: COLORS.secondary,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -254,82 +273,96 @@ const styles = StyleSheet.create({
   quote: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.surface,
     textAlign: 'center',
     lineHeight: 36,
     marginBottom: 24,
   },
   author: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: COLORS.surface,
     textAlign: 'center',
     fontStyle: 'italic',
     opacity: 0.9,
   },
-  header: {
-    marginBottom: 0,
-    alignItems: 'center',
-    width: '100%',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
-  card: {
-    backgroundColor: COLORS.background,
-    borderRadius: 16,
-    padding: 24,
-    marginTop: -60,
-    marginBottom: 24,
-    width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  cardText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginBottom: 24,
-  },
-  button: {
-    height: 56,
-    borderRadius: 12,
+  mainContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: 24,
   },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
+  sessionInfo: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
-  secondaryButton: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
+  sessionLabelEmpty: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  buttonDisabled: {
-    backgroundColor: COLORS.border,
+  sessionLabelReady: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  selectLink: {
+    fontSize: 16,
+    color: COLORS.accent,
+    fontWeight: '600',
+  },
+  startButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+  },
+  settingsButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
     borderColor: COLORS.border,
   },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.surface,
+  startButton: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  secondaryButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.primary,
+  startButtonDisabled: {
+    backgroundColor: COLORS.border,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  startButtonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.surface,
+    letterSpacing: 2,
+  },
+  startButtonTextDisabled: {
+    color: COLORS.textSecondary,
+  },
+  libraryButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 });
-
