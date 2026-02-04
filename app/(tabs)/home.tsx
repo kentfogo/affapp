@@ -174,7 +174,10 @@ export default function HomeScreen() {
 
           {/* Big START Button */}
           <View style={styles.startButtonContainer}>
-            <TouchableOpacity style={styles.settingsButton}>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setShowSettingsModal(true)}
+            >
               <Ionicons name="settings-outline" size={28} color={COLORS.text} />
             </TouchableOpacity>
 
@@ -232,10 +235,12 @@ const styles = StyleSheet.create({
   backgroundImageStyle: {
     opacity: 0.06,
     position: 'absolute',
-    top: '-50%',
-    left: '-100%',
-    width: '450%',
-    height: '360%',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   navHeader: {
     alignItems: 'center',

@@ -1,30 +1,89 @@
-import { createAudioPlayer, AudioPlayer } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { Affirmation } from '../types/affirmation';
 import { VoicePreset } from '../types/session';
 
-export const VOICE_PRESETS: Record<VoicePreset, { pitch: number; rate: number; description: string }> = {
-  calm: { pitch: 0.85, rate: 0.55, description: 'Slower, lower pitch' },
-  natural: { pitch: 1.0, rate: 0.7, description: 'Standard speaking' },
-  warm: { pitch: 0.75, rate: 0.5, description: 'Deep, slow, soothing' },
-  gentle: { pitch: 0.9, rate: 0.45, description: 'Very slow, soft' },
-  energetic: { pitch: 1.1, rate: 0.8, description: 'Slightly upbeat' },
+// Google Cloud Neural2 voice configurations
+export const VOICE_PRESETS: Record<VoicePreset, {
+  googleVoiceId: string;
+  name: string;
+  description: string;
+  gender: 'female' | 'male';
+  fallbackPitch: number;
+  fallbackRate: number;
+}> = {
+  emma: {
+    googleVoiceId: 'en-US-Neural2-C',
+    name: 'Emma',
+    description: 'Warm & encouraging',
+    gender: 'female',
+    fallbackPitch: 1.0,
+    fallbackRate: 0.9,
+  },
+  aria: {
+    googleVoiceId: 'en-US-Neural2-E',
+    name: 'Aria',
+    description: 'Friendly & energetic',
+    gender: 'female',
+    fallbackPitch: 1.1,
+    fallbackRate: 0.95,
+  },
+  luna: {
+    googleVoiceId: 'en-US-Neural2-F',
+    name: 'Luna',
+    description: 'Calm & soothing',
+    gender: 'female',
+    fallbackPitch: 0.9,
+    fallbackRate: 0.85,
+  },
+  james: {
+    googleVoiceId: 'en-US-Neural2-D',
+    name: 'James',
+    description: 'Confident & motivational',
+    gender: 'male',
+    fallbackPitch: 0.85,
+    fallbackRate: 0.9,
+  },
+  ryan: {
+    googleVoiceId: 'en-US-Neural2-A',
+    name: 'Ryan',
+    description: 'Supportive coach',
+    gender: 'male',
+    fallbackPitch: 0.95,
+    fallbackRate: 0.9,
+  },
+  marcus: {
+    googleVoiceId: 'en-US-Neural2-J',
+    name: 'Marcus',
+    description: 'Professional & athletic',
+    gender: 'male',
+    fallbackPitch: 0.9,
+    fallbackRate: 0.95,
+  },
+};
+
+// Audio file mapping - maps voice + affirmation ID to require() statement
+const AUDIO_FILES: Record<string, Record<string, any>> = {
+  james: {
+    anxiety_2: require('../assets/voices/james/anxiety_2.mp3'),
+  },
 };
 
 class AudioService {
-  private player: AudioPlayer | null = null;
-  private chimePlayer: AudioPlayer | null = null;
+  private sound: Audio.Sound | null = null;
   private isPlaying = false;
-  private volume = 0.8; // 0-1
-  private currentPreset: VoicePreset = 'calm';
+  private volume = 0.8;
+  private currentPreset: VoicePreset = 'emma';
 
   async initialize() {
-    // expo-audio doesn't require explicit initialization like expo-av
-    // Audio players are created on-demand
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: true,
+    });
   }
 
   setVolume(volumePercent: number) {
-    // Convert 0-100 to 0-1
     this.volume = Math.max(0, Math.min(1, volumePercent / 100));
   }
 
@@ -37,8 +96,6 @@ class AudioService {
   }
 
   async playChime(): Promise<void> {
-    // Play a simple chime/notification sound before affirmation
-    // Using Speech to say a brief tone indicator since we don't have a chime asset
     return new Promise((resolve) => {
       Speech.speak('...', {
         language: 'en',
@@ -49,66 +106,88 @@ class AudioService {
         onStopped: () => resolve(),
         onError: () => resolve(),
       });
-      // Short delay for the chime
       setTimeout(resolve, 300);
     });
   }
 
   async playAffirmation(affirmation: Affirmation, playChime = false): Promise<void> {
     try {
-      // Stop any currently playing audio
       await this.stop();
 
-      // Play chime first if enabled
       if (playChime) {
         await this.playChime();
-        // Brief pause after chime
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      if (affirmation.isCustom && affirmation.audioUri) {
-        // Play recorded audio
-        await this.playAudioFile(affirmation.audioUri);
+      // Check if we have a pre-generated audio file for this voice + affirmation
+      const voiceFiles = AUDIO_FILES[this.currentPreset];
+      const audioFile = voiceFiles?.[affirmation.id];
+
+      if (audioFile) {
+        await this.playAudioFile(audioFile);
+      } else if (affirmation.isCustom && affirmation.audioUri) {
+        await this.playAudioUri(affirmation.audioUri);
       } else {
-        // Use TTS
+        // Fallback to device TTS
         await this.speakText(affirmation.text);
       }
     } catch (error) {
       console.error('Error playing affirmation:', error);
+      // Fallback to TTS
+      try {
+        await this.speakText(affirmation.text);
+      } catch (fallbackError) {
+        console.error('Fallback TTS failed:', fallbackError);
+        throw error;
+      }
+    }
+  }
+
+  private async playAudioFile(audioModule: any): Promise<void> {
+    try {
+      const { sound } = await Audio.Sound.createAsync(audioModule, {
+        volume: this.volume,
+        shouldPlay: true,
+      });
+      this.sound = sound;
+      this.isPlaying = true;
+
+      return new Promise((resolve, reject) => {
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            this.isPlaying = false;
+            sound.unloadAsync();
+            this.sound = null;
+            resolve();
+          }
+        });
+      });
+    } catch (error) {
+      this.isPlaying = false;
       throw error;
     }
   }
 
-  private async playAudioFile(uri: string): Promise<void> {
+  private async playAudioUri(uri: string): Promise<void> {
     try {
-      // Create a new audio player for the file
-      this.player = createAudioPlayer(uri);
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { volume: this.volume, shouldPlay: true }
+      );
+      this.sound = sound;
       this.isPlaying = true;
 
-      // Set up playback completion listener
-      this.player.addListener('playbackStatusUpdate', () => {
-        if (this.player && !this.player.playing && this.player.isLoaded) {
-          this.isPlaying = false;
-        }
-      });
-
-      // Start playback
-      this.player.play();
-      
-      // Wait for playback to finish
-      await new Promise<void>((resolve) => {
-        const checkStatus = () => {
-          if (!this.player || !this.player.playing) {
+      return new Promise((resolve) => {
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
             this.isPlaying = false;
+            sound.unloadAsync();
+            this.sound = null;
             resolve();
-          } else {
-            setTimeout(checkStatus, 100);
           }
-        };
-        checkStatus();
+        });
       });
     } catch (error) {
-      console.error('Error playing audio file:', error);
       this.isPlaying = false;
       throw error;
     }
@@ -120,8 +199,8 @@ class AudioService {
       try {
         Speech.speak(text, {
           language: 'en',
-          pitch: preset.pitch,
-          rate: preset.rate,
+          pitch: preset.fallbackPitch,
+          rate: preset.fallbackRate,
           volume: this.volume,
           onDone: () => {
             this.isPlaying = false;
@@ -146,10 +225,10 @@ class AudioService {
 
   async stop(): Promise<void> {
     try {
-      if (this.player) {
-        this.player.pause();
-        this.player.remove();
-        this.player = null;
+      if (this.sound) {
+        await this.sound.stopAsync();
+        await this.sound.unloadAsync();
+        this.sound = null;
       }
       Speech.stop();
       this.isPlaying = false;
@@ -161,8 +240,8 @@ class AudioService {
 
   async pause(): Promise<void> {
     try {
-      if (this.player) {
-        this.player.pause();
+      if (this.sound) {
+        await this.sound.pauseAsync();
       }
       Speech.stop();
       this.isPlaying = false;
@@ -182,5 +261,3 @@ class AudioService {
 }
 
 export const audioService = new AudioService();
-
-

@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   endButton: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.secondary,
   },
   holdProgressBar: {
     position: 'absolute',

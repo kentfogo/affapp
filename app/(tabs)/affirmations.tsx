@@ -46,6 +46,14 @@ export default function AffirmationsScreen() {
     loadExistingSelections();
   }, []);
 
+  // Sync selectedIds when selectedAffirmations changes (e.g., from List page)
+  useEffect(() => {
+    if (selectedAffirmations.length > 0) {
+      const ids = new Set(selectedAffirmations.map(a => a.id));
+      setSelectedIds(ids);
+    }
+  }, [selectedAffirmations]);
+
   useEffect(() => {
     // Show Done button only when 5+ affirmations are selected
     const shouldShow = selectedIds.size >= 5;

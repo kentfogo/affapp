@@ -3,7 +3,14 @@ export type DistanceUnit = 'miles' | 'kilometers';
 
 export type RepetitionMode = 'sequential' | 'random';
 
-export type VoicePreset = 'calm' | 'natural' | 'warm' | 'gentle' | 'energetic';
+// Google Cloud Neural2 voice presets for high-quality TTS
+export type VoicePreset =
+  | 'emma'      // en-US-Neural2-C - Warm, encouraging, professional (Female)
+  | 'aria'      // en-US-Neural2-E - Friendly, energetic, clear (Female)
+  | 'luna'      // en-US-Neural2-F - Calm, soothing, therapeutic (Female)
+  | 'james'     // en-US-Neural2-D - Deep, confident, motivational (Male)
+  | 'ryan'      // en-US-Neural2-A - Friendly, supportive, coach-like (Male)
+  | 'marcus';   // en-US-Neural2-J - Professional, clear, athletic (Male)
 
 export interface SessionSettings {
   intervalType: IntervalType;

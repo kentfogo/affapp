@@ -32,15 +32,7 @@ const DEFAULT_SETTINGS: SessionSettings = {
   volume: 80,
   repetitionMode: 'sequential',
   playChime: false,
-  voicePreset: 'calm',
-};
-
-const VOICE_PRESET_LABELS: Record<VoicePreset, string> = {
-  calm: 'Calm',
-  natural: 'Natural',
-  warm: 'Warm',
-  gentle: 'Gentle',
-  energetic: 'Energetic',
+  voicePreset: 'emma',
 };
 
 export default function SessionSettingsModal({
@@ -239,30 +231,36 @@ export default function SessionSettingsModal({
 
           {/* Voice Preset */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Voice Style</Text>
+            <Text style={styles.sectionTitle}>Voice</Text>
             <View style={styles.voiceGrid}>
-              {(Object.keys(VOICE_PRESETS) as VoicePreset[]).map((preset) => (
-                <TouchableOpacity
-                  key={preset}
-                  style={[
-                    styles.voiceButton,
-                    settings.voicePreset === preset && styles.voiceButtonActive,
-                  ]}
-                  onPress={() => handleVoicePresetChange(preset)}
-                >
-                  <Text
+              {(Object.keys(VOICE_PRESETS) as VoicePreset[]).map((preset) => {
+                const voice = VOICE_PRESETS[preset];
+                return (
+                  <TouchableOpacity
+                    key={preset}
                     style={[
-                      styles.voiceButtonLabel,
-                      settings.voicePreset === preset && styles.voiceButtonLabelActive,
+                      styles.voiceButton,
+                      settings.voicePreset === preset && styles.voiceButtonActive,
                     ]}
+                    onPress={() => handleVoicePresetChange(preset)}
                   >
-                    {VOICE_PRESET_LABELS[preset]}
-                  </Text>
-                  <Text style={styles.voiceButtonDescription}>
-                    {VOICE_PRESETS[preset].description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.voiceButtonLabel,
+                        settings.voicePreset === preset && styles.voiceButtonLabelActive,
+                      ]}
+                    >
+                      {voice.name}
+                    </Text>
+                    <Text style={styles.voiceButtonDescription}>
+                      {voice.description}
+                    </Text>
+                    <Text style={styles.voiceButtonGender}>
+                      {voice.gender === 'female' ? '♀' : '♂'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         </ScrollView>
@@ -425,26 +423,34 @@ const styles = StyleSheet.create({
   },
   voiceButton: {
     width: '47%',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
     backgroundColor: COLORS.background,
+    position: 'relative',
   },
   voiceButtonActive: {
     borderColor: COLORS.primary,
     backgroundColor: `${COLORS.primary}15`,
   },
   voiceButtonLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   voiceButtonLabelActive: {
     color: COLORS.primary,
   },
   voiceButtonDescription: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  voiceButtonGender: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
     fontSize: 12,
     color: COLORS.textSecondary,
   },
