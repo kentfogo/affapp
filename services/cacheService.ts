@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const CACHE_DIR = `${FileSystem.CacheDirectory}affirmations/`;
 const CACHE_METADATA_KEY = '@cache_metadata';
