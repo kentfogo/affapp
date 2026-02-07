@@ -12,7 +12,10 @@ module.exports = (() => {
 
   // Exclude react-native-maps from web bundling (native-only module)
   config.resolver.resolveRequest = (context, moduleName, platform) => {
-    if (platform === 'web' && (moduleName === 'react-native-maps' || moduleName.startsWith('react-native-maps/'))) {
+    if (platform === 'web' && (
+      moduleName === 'react-native-maps' || moduleName.startsWith('react-native-maps/') ||
+      moduleName === 'expo-speech-recognition' || moduleName.startsWith('expo-speech-recognition/')
+    )) {
       return {
         type: 'empty',
       };
