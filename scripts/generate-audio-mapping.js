@@ -15,7 +15,9 @@ const affirmationsPath = path.join(__dirname, '..', 'affirmationslist2.json');
 const affirmationsData = JSON.parse(fs.readFileSync(affirmationsPath, 'utf8'));
 const affirmationIds = affirmationsData.affirmations.map(a => a.id);
 
-const voices = ['emma', 'aria', 'luna', 'james', 'ryan', 'marcus'];
+// Only bundle these voices - others will be downloaded on demand
+const BUNDLED_VOICES = ['emma', 'james'];
+const voices = BUNDLED_VOICES;
 
 console.log('// Copy this into audioService.ts, replacing the empty AUDIO_FILES object:\n');
 console.log('const AUDIO_FILES: Record<string, Record<string, any>> = {');

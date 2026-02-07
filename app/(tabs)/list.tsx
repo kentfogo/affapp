@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { COLORS } from '../../constants/colors';
 import { affirmationService } from '../../services/affirmationService';
 import { storageService } from '../../services/storageService';
@@ -24,11 +25,37 @@ export default function ListScreen() {
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [transcribedText, setTranscribedText] = useState('');
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const NUM_WAVE_BARS = 9;
+  const waveAnims = useRef(
+    Array.from({ length: NUM_WAVE_BARS }, () => new Animated.Value(0.3))
+  ).current;
+
+  // Speech recognition event listeners for transcription
+  useSpeechRecognitionEvent('result', (event) => {
+    if (event.results?.[0]) {
+      const transcript = event.results[0].transcript;
+      setTranscribedText(transcript);
+      if (event.isFinal && transcript.trim()) {
+        setNewAffirmationText(transcript.trim());
+      }
+    }
+  });
+
+  useSpeechRecognitionEvent('audioend', (event) => {
+    if (event.uri) {
+      setRecordedUri(event.uri);
+    }
+  });
+
+  useSpeechRecognitionEvent('error', (event) => {
+    console.error('Speech recognition error:', event.error, event.message);
+    setIsRecording(false);
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -83,69 +110,82 @@ export default function ListScreen() {
     }
   }, [isRecording]);
 
+  // Sound wave bar animation
+  useEffect(() => {
+    if (isRecording) {
+      const animations = waveAnims.map((anim, i) => {
+        const baseDelay = i * 80;
+        const duration = 300 + (i % 3) * 100;
+        return Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, {
+              toValue: 0.5 + Math.random() * 0.5,
+              duration,
+              delay: baseDelay,
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim, {
+              toValue: 0.15 + Math.random() * 0.2,
+              duration: duration + 50,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+      });
+      animations.forEach((a) => a.start());
+      return () => animations.forEach((a) => a.stop());
+    } else {
+      waveAnims.forEach((anim) => {
+        Animated.timing(anim, {
+          toValue: 0.3,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      });
+    }
+  }, [isRecording]);
+
   const startRecording = async () => {
     try {
-      // Request permissions
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow microphone access to record your voice.');
+      const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!result.granted) {
+        Alert.alert('Permission needed', 'Please allow microphone and speech recognition access to record your voice.');
         return;
       }
 
-      // Configure audio mode for recording
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
+      // Ensure recordings directory exists
+      const recordingsDir = `${FileSystem.documentDirectory || ''}recordings/`;
+      await FileSystem.makeDirectoryAsync(recordingsDir, { intermediates: true }).catch(() => {});
 
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(newRecording);
       setIsRecording(true);
-      setRecordedUri(null); // Clear previous recording
+      setRecordedUri(null);
+      setTranscribedText('');
+
+      ExpoSpeechRecognitionModule.start({
+        lang: 'en-US',
+        interimResults: true,
+        continuous: true,
+        addsPunctuation: true,
+        recordingOptions: {
+          persist: true,
+          outputDirectory: recordingsDir,
+          outputFileName: `custom_voice_${Date.now()}.wav`,
+        },
+      });
     } catch (error) {
       console.error('Failed to start recording:', error);
       Alert.alert('Error', 'Could not start recording. Please try again.');
+      setIsRecording(false);
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
-
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsRecording(false);
-
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      setRecording(null);
-
-      if (uri) {
-        // Move to permanent storage
-        const filename = `custom_voice_${Date.now()}.m4a`;
-        const docDir = FileSystem.documentDirectory || '';
-        const recordingsDir = `${docDir}recordings/`;
-        const permanentUri = `${recordingsDir}${filename}`;
-
-        // Ensure directory exists
-        await FileSystem.makeDirectoryAsync(recordingsDir, {
-          intermediates: true,
-        }).catch(() => {}); // Ignore if exists
-
-        // Copy then delete (moveAsync is deprecated)
-        await FileSystem.copyAsync({ from: uri, to: permanentUri });
-        await FileSystem.deleteAsync(uri, { idempotent: true });
-        setRecordedUri(permanentUri);
-      }
-
-      // Reset audio mode
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
+      ExpoSpeechRecognitionModule.stop();
     } catch (error) {
       console.error('Failed to stop recording:', error);
       setIsRecording(false);
@@ -194,6 +234,7 @@ export default function ListScreen() {
     setNewAffirmationText('');
     setRecordedUri(null);
     setIsRecording(false);
+    setTranscribedText('');
     if (sound) {
       sound.unloadAsync();
       setSound(null);
@@ -202,8 +243,8 @@ export default function ListScreen() {
   };
 
   const handleAddAffirmation = async () => {
-    if (!newAffirmationText.trim()) {
-      Alert.alert('Error', 'Please enter an affirmation');
+    if (!newAffirmationText.trim() && !recordedUri) {
+      Alert.alert('Error', 'Please enter an affirmation or record your voice');
       return;
     }
 
@@ -211,10 +252,10 @@ export default function ListScreen() {
 
     const newAffirmation: Affirmation = {
       id: `custom_${Date.now()}`,
-      text: newAffirmationText.trim(),
+      text: newAffirmationText.trim() || 'Voice affirmation',
       category: 'Custom',
       isCustom: true,
-      audioUri: recordedUri || undefined, // Include voice recording if available
+      audioUri: recordedUri || undefined,
     };
 
     const updatedCustom = [...customAffirmations, newAffirmation];
@@ -252,9 +293,14 @@ export default function ListScreen() {
     await storageService.saveSelectedAffirmations(newSelectedAffirmations);
   };
 
-  const filteredAffirmations = selectedCategory
+  const filteredAffirmations = (selectedCategory
     ? affirmations.filter(a => a.category === selectedCategory)
-    : affirmations;
+    : affirmations
+  ).sort((a, b) => {
+    const aSelected = selectedIds.has(a.id) ? 0 : 1;
+    const bSelected = selectedIds.has(b.id) ? 0 : 1;
+    return aSelected - bSelected;
+  });
 
   const renderAffirmation = ({ item, index }: { item: Affirmation; index: number }) => {
     const isSelected = selectedIds.has(item.id);
@@ -371,20 +417,48 @@ export default function ListScreen() {
 
             <View style={styles.recordingContainer}>
               {!recordedUri ? (
-                // Recording button
-                <TouchableOpacity
-                  style={[styles.recordButton, isRecording && styles.recordButtonActive]}
-                  onPress={isRecording ? stopRecording : startRecording}
-                  activeOpacity={0.8}
-                >
-                  <Animated.View style={{ transform: [{ scale: isRecording ? pulseAnim : 1 }] }}>
-                    <Ionicons
-                      name={isRecording ? 'stop' : 'mic'}
-                      size={32}
-                      color={COLORS.surface}
-                    />
-                  </Animated.View>
-                </TouchableOpacity>
+                // Recording button with wave bars
+                <View style={styles.waveContainer}>
+                  {isRecording && (
+                    <View style={styles.waveBarsLeft}>
+                      {waveAnims.slice(0, Math.floor(NUM_WAVE_BARS / 2)).map((anim, i) => (
+                        <Animated.View
+                          key={`left-${i}`}
+                          style={[
+                            styles.waveBar,
+                            { transform: [{ scaleY: anim }], opacity: anim },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={[styles.recordButton, isRecording && styles.recordButtonActive]}
+                    onPress={isRecording ? stopRecording : startRecording}
+                    activeOpacity={0.8}
+                  >
+                    <Animated.View style={{ transform: [{ scale: isRecording ? pulseAnim : 1 }] }}>
+                      <Ionicons
+                        name={isRecording ? 'stop' : 'mic'}
+                        size={32}
+                        color={COLORS.surface}
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+                  {isRecording && (
+                    <View style={styles.waveBarsRight}>
+                      {waveAnims.slice(Math.floor(NUM_WAVE_BARS / 2)).map((anim, i) => (
+                        <Animated.View
+                          key={`right-${i}`}
+                          style={[
+                            styles.waveBar,
+                            { transform: [{ scaleY: anim }], opacity: anim },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </View>
               ) : (
                 // Playback controls
                 <View style={styles.playbackContainer}>
@@ -412,8 +486,11 @@ export default function ListScreen() {
                 </View>
               )}
 
-              {isRecording && (
-                <Text style={styles.recordingHint}>Tap to stop recording</Text>
+              {isRecording && transcribedText ? (
+                <Text style={styles.transcriptionPreview}>"{transcribedText}"</Text>
+              ) : null}
+              {isRecording && !transcribedText && (
+                <Text style={styles.recordingHint}>Listening...</Text>
               )}
               {!recordedUri && !isRecording && (
                 <Text style={styles.recordingHint}>Tap to start recording</Text>
@@ -546,6 +623,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
   },
+  waveContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  waveBarsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 80,
+  },
+  waveBarsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 80,
+  },
+  waveBar: {
+    width: 4,
+    height: 48,
+    borderRadius: 2,
+    backgroundColor: COLORS.primary,
+  },
   recordButton: {
     width: 80,
     height: 80,
@@ -566,6 +667,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: COLORS.textSecondary,
+  },
+  transcriptionPreview: {
+    marginTop: 12,
+    fontSize: 14,
+    color: COLORS.text,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
   playbackContainer: {
     flexDirection: 'row',

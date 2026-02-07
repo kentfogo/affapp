@@ -22,6 +22,17 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 
+// Set credentials path directly (no env variable needed)
+const keyPath = path.join(__dirname, 'google-tts-key.json');
+if (fs.existsSync(keyPath)) {
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = keyPath;
+} else {
+  console.error('ERROR: google-tts-key.json not found in scripts folder');
+  console.error('Please place your Google Cloud service account key at:');
+  console.error(keyPath);
+  process.exit(1);
+}
+
 // Load affirmations
 const affirmationsPath = path.join(__dirname, '..', 'affirmationslist2.json');
 const affirmationsData = JSON.parse(fs.readFileSync(affirmationsPath, 'utf8'));

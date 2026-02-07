@@ -45,10 +45,13 @@ export default function SessionScreen() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [distance, setDistance] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [endCooldown, setEndCooldown] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
   const holdStartRef = useRef<number | null>(null);
+  const endHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const endHoldStartRef = useRef<number | null>(null);
   const lastDistanceCheck = useRef<number>(0);
   const currentAffirmationIndexRef = useRef<number>(0);
   const isPausedRef = useRef(false);
@@ -231,6 +234,47 @@ export default function SessionScreen() {
     setIsPaused(true);
     isPausedRef.current = true;
     audioService.stop();
+
+    // 2-second cooldown before end button becomes active
+    setEndCooldown(true);
+    setTimeout(() => setEndCooldown(false), 2000);
+  };
+
+  const handleResume = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsPaused(false);
+    isPausedRef.current = false;
+    setHoldProgress(0);
+  };
+
+  const handleEndPressIn = () => {
+    if (endCooldown) return;
+
+    endHoldStartRef.current = Date.now();
+    endHoldTimerRef.current = setInterval(() => {
+      if (endHoldStartRef.current) {
+        const elapsed = Date.now() - endHoldStartRef.current;
+        const progress = Math.min(elapsed / HOLD_DURATION, 1);
+        setHoldProgress(progress);
+
+        if (progress >= 1) {
+          clearInterval(endHoldTimerRef.current!);
+          endHoldTimerRef.current = null;
+          endHoldStartRef.current = null;
+          setHoldProgress(0);
+          handleEndSession();
+        }
+      }
+    }, 50);
+  };
+
+  const handleEndPressOut = () => {
+    if (endHoldTimerRef.current) {
+      clearInterval(endHoldTimerRef.current);
+      endHoldTimerRef.current = null;
+    }
+    endHoldStartRef.current = null;
+    setHoldProgress(0);
   };
 
   const handleEndSession = async () => {
@@ -298,6 +342,10 @@ export default function SessionScreen() {
     if (holdTimerRef.current) {
       clearInterval(holdTimerRef.current);
       holdTimerRef.current = null;
+    }
+    if (endHoldTimerRef.current) {
+      clearInterval(endHoldTimerRef.current);
+      endHoldTimerRef.current = null;
     }
     locationService.stopTracking();
     audioService.cleanup();
@@ -374,14 +422,30 @@ export default function SessionScreen() {
             <Text style={styles.actionButtonText}>Hold to Pause</Text>
           </TouchableOpacity>
         ) : (
-          // Press to End button
-          <TouchableOpacity
-            style={[styles.actionButton, styles.endButton]}
-            onPress={handleEndSession}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionButtonText}>Press to End</Text>
-          </TouchableOpacity>
+          // Resume + Hold to End buttons
+          <View style={styles.pausedButtons}>
+            <TouchableOpacity
+              style={styles.resumeButton}
+              onPress={handleResume}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.resumeButtonText}>Resume</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.endButton, endCooldown && styles.endButtonDisabled]}
+              onPressIn={handleEndPressIn}
+              onPressOut={handleEndPressOut}
+              activeOpacity={1}
+              disabled={endCooldown}
+            >
+              {holdProgress > 0 && (
+                <View style={[styles.holdProgressBar, { width: `${holdProgress * 100}%`, backgroundColor: COLORS.accent }]} />
+              )}
+              <Text style={[styles.endButtonText, endCooldown && styles.endButtonTextDisabled]}>
+                Hold to End
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
@@ -446,12 +510,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   affirmationText: {
-    fontSize: 18,
+    fontSize: 24,
     color: COLORS.secondary,
     textAlign: 'center',
     fontStyle: 'italic',
-    lineHeight: 26,
-    opacity: 0.8,
+    lineHeight: 34,
+    opacity: 0.9,
   },
   footer: {
     paddingHorizontal: 24,
@@ -465,8 +529,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
+  pausedButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  resumeButton: {
+    flex: 1,
+    height: 64,
+    backgroundColor: COLORS.surface,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.secondary,
+  },
+  resumeButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.secondary,
+  },
   endButton: {
+    flex: 1,
+    height: 64,
     backgroundColor: COLORS.secondary,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  endButtonDisabled: {
+    opacity: 0.4,
+  },
+  endButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.surface,
+  },
+  endButtonTextDisabled: {
+    opacity: 0.6,
   },
   holdProgressBar: {
     position: 'absolute',
