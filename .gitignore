@@ -51,6 +51,9 @@ firebase-config.json
 google-services.json
 GoogleService-Info.plist
 
+# Google Cloud credentials
+scripts/google-tts-key.json
+
 # TypeScript
 *.tsbuildinfo
 
