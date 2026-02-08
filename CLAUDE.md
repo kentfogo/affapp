@@ -133,6 +133,19 @@ Colors in `constants/colors.ts`:
 Firebase credentials required in `.env` with `EXPO_PUBLIC_` prefix:
 `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`
 
+## Gemini CLI (Large Codebase Analysis)
+
+For analysis that exceeds context limits, use the Gemini CLI with `@` syntax to include files/directories:
+
+```bash
+gemini -p "@app/ @services/ Summarize the architecture"
+gemini -p "@package.json @src/index.js Analyze dependencies"
+gemini -p "@./ Give me an overview of this entire project"
+gemini --all_files -p "Analyze the project structure"
+```
+
+Use `gemini -p` when analyzing entire codebases, comparing multiple large files, or verifying project-wide patterns. Paths in `@` syntax are relative to your current working directory.
+
 ## Development Principles
 
 1. **Zustand only** — Don't introduce other state management (effector is in package.json but unused)
