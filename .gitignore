@@ -61,4 +61,5 @@ scripts/google-tts-key.json
 *.log
 .vscode/
 .idea/
+screenshots/
 
