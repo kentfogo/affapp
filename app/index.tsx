@@ -22,14 +22,15 @@ export default function Index() {
 
   useEffect(() => {
     if (authLoading || onboardingLoading) return;
-
-    if (!user) {
-      router.replace('/(auth)/login');
-    } else if (!isComplete) {
-      router.replace('/onboarding');
-    } else {
-      router.replace('/(tabs)/home');
-    }
+    setTimeout(() => {
+      if (!user) {
+        router.replace('/(auth)/login');
+      } else if (!isComplete) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/(tabs)/home');
+      }
+    }, 0);
   }, [user, isComplete, authLoading, onboardingLoading, router]);
 
   return (

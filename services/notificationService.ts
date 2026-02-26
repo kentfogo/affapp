@@ -29,7 +29,7 @@ class NotificationService {
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
           name: 'Session Updates',
-          importance: Notifications.AndroidImportance.HIGH,
+          importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#CC9B7A',
           lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -37,10 +37,34 @@ class NotificationService {
         });
       }
 
+      // Set up notification action categories for lock screen controls
+      try {
+        await Notifications.setNotificationCategoryAsync('session-active', [
+          {
+            identifier: 'pause',
+            buttonTitle: 'Pause',
+            options: { opensAppToForeground: false },
+          },
+        ]);
+        await Notifications.setNotificationCategoryAsync('session-paused', [
+          {
+            identifier: 'resume',
+            buttonTitle: 'Resume',
+            options: { opensAppToForeground: false },
+          },
+          {
+            identifier: 'end',
+            buttonTitle: 'End Session',
+            options: { opensAppToForeground: true },
+          },
+        ]);
+      } catch {
+        // Action categories not supported on this platform/version
+      }
+
       // Configure notification handler
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
-          shouldShowAlert: true,
           shouldPlaySound: false,
           shouldSetBadge: false,
           shouldShowBanner: true,
@@ -56,7 +80,11 @@ class NotificationService {
     }
   }
 
-  async startSessionNotification(timer: string, affirmation: string): Promise<void> {
+  async startSessionNotification(
+    timer: string,
+    affirmation: string,
+    distance: string = ''
+  ): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -65,10 +93,11 @@ class NotificationService {
       await Notifications.scheduleNotificationAsync({
         identifier: SESSION_NOTIFICATION_ID,
         content: {
-          title: `Session Active - ${timer}`,
-          body: affirmation,
+          title: affirmation || 'Session Active',
+          body: `⏱ ${timer}${distance ? `  📍 ${distance}` : ''}`,
           sticky: true,
           autoDismiss: false,
+          categoryIdentifier: 'session-active',
           ...(Platform.OS === 'android' && {
             priority: 'high',
           }),
@@ -80,11 +109,15 @@ class NotificationService {
     }
   }
 
-  async updateNotification(timer: string, affirmation: string, isPaused = false): Promise<void> {
+  async updateNotification(
+    timer: string,
+    affirmation: string,
+    isPaused = false,
+    distance: string = ''
+  ): Promise<void> {
     if (!this.isInitialized) return;
 
     try {
-      // Cancel existing and create new to update
       await Notifications.dismissNotificationAsync(SESSION_NOTIFICATION_ID);
 
       const timerDisplay = isPaused ? `${timer} (Paused)` : timer;
@@ -92,17 +125,18 @@ class NotificationService {
       await Notifications.scheduleNotificationAsync({
         identifier: SESSION_NOTIFICATION_ID,
         content: {
-          title: `Session Active - ${timerDisplay}`,
-          body: affirmation,
+          title: affirmation || (isPaused ? 'Session Paused' : 'Session Active'),
+          body: `⏱ ${timerDisplay}${distance ? `  📍 ${distance}` : ''}`,
           sticky: true,
           autoDismiss: false,
+          categoryIdentifier: isPaused ? 'session-paused' : 'session-active',
           ...(Platform.OS === 'android' && {
             priority: 'high',
           }),
         },
         trigger: null,
       });
-    } catch (error) {
+    } catch {
       // Silently fail on update errors to avoid spam
     }
   }

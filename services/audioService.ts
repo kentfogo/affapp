@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { Affirmation } from '../types/affirmation';
 import { VoicePreset } from '../types/session';
@@ -179,16 +179,17 @@ const AUDIO_FILES: Record<string, Record<string, any>> = {
 };
 
 class AudioService {
-  private sound: Audio.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private isPlaying = false;
   private volume = 0.8;
   private currentPreset: VoicePreset = 'emma';
 
   async initialize() {
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: true,
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'duckOthers',
+      interruptionModeAndroid: 'duckOthers',
     });
   }
 
@@ -254,22 +255,21 @@ class AudioService {
 
   private async playAudioFile(audioModule: any): Promise<void> {
     try {
-      const { sound } = await Audio.Sound.createAsync(audioModule, {
-        volume: this.volume,
-        shouldPlay: true,
-      });
-      this.sound = sound;
+      const player = createAudioPlayer(audioModule);
+      player.volume = this.volume;
+      this.player = player;
+      player.play();
       this.isPlaying = true;
 
-      return new Promise((resolve, reject) => {
-        sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded && status.didJustFinish) {
+      return new Promise<void>((resolve) => {
+        const poll = setInterval(() => {
+          if (!this.player || this.player.currentStatus.didJustFinish) {
+            clearInterval(poll);
             this.isPlaying = false;
-            sound.unloadAsync();
-            this.sound = null;
+            if (this.player) { this.player.remove(); this.player = null; }
             resolve();
           }
-        });
+        }, 100);
       });
     } catch (error) {
       this.isPlaying = false;
@@ -279,22 +279,21 @@ class AudioService {
 
   private async playAudioUri(uri: string): Promise<void> {
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { volume: this.volume, shouldPlay: true }
-      );
-      this.sound = sound;
+      const player = createAudioPlayer({ uri });
+      player.volume = this.volume;
+      this.player = player;
+      player.play();
       this.isPlaying = true;
 
-      return new Promise((resolve) => {
-        sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded && status.didJustFinish) {
+      return new Promise<void>((resolve) => {
+        const poll = setInterval(() => {
+          if (!this.player || this.player.currentStatus.didJustFinish) {
+            clearInterval(poll);
             this.isPlaying = false;
-            sound.unloadAsync();
-            this.sound = null;
+            if (this.player) { this.player.remove(); this.player = null; }
             resolve();
           }
-        });
+        }, 100);
       });
     } catch (error) {
       this.isPlaying = false;
@@ -334,11 +333,7 @@ class AudioService {
 
   async stop(): Promise<void> {
     try {
-      if (this.sound) {
-        await this.sound.stopAsync();
-        await this.sound.unloadAsync();
-        this.sound = null;
-      }
+      if (this.player) { this.player.remove(); this.player = null; }
       Speech.stop();
       this.isPlaying = false;
     } catch (error) {
@@ -349,9 +344,7 @@ class AudioService {
 
   async pause(): Promise<void> {
     try {
-      if (this.sound) {
-        await this.sound.pauseAsync();
-      }
+      if (this.player) this.player.pause();
       Speech.stop();
       this.isPlaying = false;
     } catch (error) {

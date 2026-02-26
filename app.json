@@ -4,7 +4,7 @@
     "slug": "mental-victory-practice",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/red-panda.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -26,8 +26,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1F1F1F"
+        "foregroundImage": "./assets/red-panda.png",
+        "backgroundColor": "#F5F5F5"
       },
       "package": "com.mentalvictory.practice",
       "config": {
